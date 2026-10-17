@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0714">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>语伴 Laoshi — 你的中文语音老师 | HSK 5</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1410; --paper:#f7f2e8; --red:#c8361b; --red-d:#9e2a14;
+  --gold:#c9a227; --jade:#2f6d5e; --mist:#e8e0d0;
+  --bg-dark:#14100c; --card:#fffdf8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Noto Sans SC',sans-serif; background:radial-gradient(1200px 620px at 72% -8%, rgba(255,45,120,.16), transparent 60%),radial-gradient(900px 520px at 12% 6%, rgba(91,227,255,.08), transparent 60%),radial-gradient(700px 400px at 45% 30%, rgba(201,162,39,.07), transparent 60%),linear-gradient(#08050f, #150a18 50%, #1e0f1c); color:var(--paper);
+  overflow-x:hidden;
+}
+::selection{background:var(--red);color:#fff;}
+
+/* ---------- background art ---------- */
+#bg-canvas{position:fixed;inset:0;z-index:0;opacity:.5;}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.06;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.7'/%3E%3C/svg%3E");}
+.wrap{position:relative;z-index:2;}
+
+/* ---------- cyberpunk city ---------- */
+#city{position:fixed;left:0;right:0;bottom:0;z-index:0;pointer-events:none;line-height:0;}
+#city svg{width:100%;height:52vh;min-height:340px;}
+.big-neon{font-family:'Noto Serif SC',serif;font-size:64px;font-weight:900;letter-spacing:14px;}
+.neon-sub{font-family:'Noto Sans SC',sans-serif;font-size:14px;letter-spacing:6px;fill:#8fd8e8;opacity:.85;filter:drop-shadow(0 0 6px #5be3ff);}
+.neon-red,.neon-gold,.neon-cyan,.neon-pink,.neon-green,.neon-orange{font-family:'Noto Serif SC',serif;font-weight:900;font-size:30px;writing-mode:vertical-rl;}
+.h-sign{font-family:'Noto Serif SC',serif;font-weight:900;font-size:34px;letter-spacing:10px;writing-mode:horizontal-tb;}
+.neon-red{filter:drop-shadow(0 0 5px #ff4d5e) drop-shadow(0 0 14px rgba(255,45,94,.8));animation:flick 4.1s infinite;}
+.neon-gold{filter:drop-shadow(0 0 5px #ffd166) drop-shadow(0 0 14px rgba(255,209,102,.8));animation:flick 5.3s infinite 1s;}
+.neon-cyan{filter:drop-shadow(0 0 5px #5be3ff) drop-shadow(0 0 14px rgba(91,227,255,.8));animation:flick 3.7s infinite .5s;}
+.neon-pink{filter:drop-shadow(0 0 5px #ff7ad9) drop-shadow(0 0 14px rgba(255,122,217,.8));animation:flick 4.7s infinite 2s;}
+.neon-green{filter:drop-shadow(0 0 5px #7dffa8) drop-shadow(0 0 14px rgba(125,255,168,.7));animation:flick 6.1s infinite .8s;}
+.neon-orange{filter:drop-shadow(0 0 5px #ff9e4d) drop-shadow(0 0 14px rgba(255,158,77,.8));animation:flick 5s infinite 1.6s;}
+@keyframes flick{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.35}94%{opacity:1}96%{opacity:.55}97%{opacity:1}}
+.train{animation:trainMove 20s linear infinite;}
+@keyframes trainMove{from{transform:translateX(-260px)}to{transform:translateX(1620px)}}
+
+/* ---------- avatar ---------- */
+.avatar{overflow:hidden;border:2px solid rgba(232,195,90,.6);box-shadow:0 0 16px rgba(255,45,120,.45),0 0 6px rgba(232,195,90,.5);}
+.avatar svg{width:100%;height:100%;display:block;border-radius:50%;}
+.msg-ava{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--gold);flex-shrink:0;margin-top:2px;
+  background:#120a12;box-shadow:0 0 10px rgba(255,45,120,.5);}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 32px;backdrop-filter:blur(14px);background:rgba(20,16,12,.72);border-bottom:1px solid rgba(201,162,39,.18);
+}
+.logo{font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.35rem;letter-spacing:2px;display:flex;align-items:center;gap:10px;}
+.logo .seal{width:34px;height:34px;background:var(--red);color:#fff;display:grid;place-items:center;border-radius:6px;
+  font-size:.95rem;box-shadow:0 2px 12px rgba(200,54,27,.5);}
+.nav-links{display:flex;gap:6px;flex-wrap:wrap;}
+.nav-links a{color:var(--mist);text-decoration:none;padding:8px 16px;border-radius:99px;font-size:.9rem;transition:.25s;border:1px solid transparent;}
+.nav-links a:hover,.nav-links a.active{color:var(--gold);border-color:rgba(201,162,39,.4);background:rgba(201,162,39,.08);}
+.progress-pill{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--mist);}
+.progress-ring{width:44px;height:44px;transform:rotate(-90deg);}
+.progress-ring circle{fill:none;stroke-width:4;}
+.progress-ring .bg{stroke:rgba(255,255,255,.12);}
+.progress-ring .fg{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+@media(max-width:760px){.nav-links a{padding:6px 10px;font-size:.8rem}.progress-pill span.lbl{display:none}}
+
+/* ---------- hero ---------- */
+.hero{min-height:100vh;display:grid;place-items:center;text-align:center;padding:120px 24px 60px;position:relative;}
+.hero h1{font-family:'Noto Serif SC',serif;font-size:clamp(2.6rem,7vw,5.4rem);font-weight:900;line-height:1.15;}
+.hero h1 .accent{color:var(--red);}
+.hero .sub{margin-top:18px;font-size:clamp(1rem,2vw,1.25rem);color:var(--mist);letter-spacing:1px;}
+.hero .badges{display:flex;gap:10px;justify-content:center;margin-top:26px;flex-wrap:wrap;}
+.badge{padding:7px 16px;border-radius:99px;font-size:.8rem;border:1px solid rgba(201,162,39,.35);color:var(--gold);background:rgba(201,162,39,.07);}
+.cta-row{display:flex;gap:14px;justify-content:center;margin-top:38px;flex-wrap:wrap;}
+.btn{cursor:pointer;border:none;font-family:inherit;font-weight:700;font-size:1rem;padding:15px 34px;border-radius:99px;transition:.25s;display:inline-flex;align-items:center;gap:10px;text-decoration:none;}
+.btn-red{background:linear-gradient(135deg,var(--red),var(--red-d));color:#fff;box-shadow:0 8px 28px rgba(200,54,27,.45);}
+.btn-red:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(200,54,27,.6);}
+.btn-ghost{background:transparent;color:var(--paper);border:1px solid rgba(247,242,232,.3);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--mist);font-size:.75rem;letter-spacing:3px;animation:bob 2.2s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,10px)}}
+
+/* ---------- sections ---------- */
+section{padding:100px 24px;max-width:1100px;margin:0 auto;}
+.sec-head{text-align:center;margin-bottom:56px;}
+.sec-head .kicker{color:var(--gold);letter-spacing:5px;font-size:.78rem;text-transform:uppercase;}
+.sec-head h2{font-family:'Noto Serif SC',serif;font-size:clamp(1.9rem,4vw,2.8rem);margin-top:10px;font-weight:900;}
+.sec-head p{color:var(--mist);margin-top:12px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.8;}
+
+/* ---------- slides ---------- */
+.deck{position:relative;background:var(--card);color:var(--ink);border-radius:24px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);min-height:520px;}
+.slide{display:none;padding:52px 56px 70px;animation:fadeIn .5s ease;min-height:520px;}
+.slide.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.slide .slide-tag{display:inline-block;background:var(--red);color:#fff;padding:5px 14px;border-radius:6px;font-size:.72rem;letter-spacing:2px;margin-bottom:20px;}
+.slide h3{font-family:'Noto Serif SC',serif;font-size:clamp(1.5rem,3vw,2.2rem);font-weight:900;margin-bottom:22px;}
+.slide h3 .en{display:block;font-family:'Noto Sans SC',sans-serif;font-size:.85rem;font-weight:400;color:#8a7f6a;margin-top:6px;letter-spacing:1px;}
+.slide p{line-height:2;color:#3d362c;font-size:1.02rem;}
+.warmup-q{background:#f3ecdd;border-left:5px solid var(--gold);padding:22px 26px;border-radius:0 14px 14px 0;margin-top:22px;font-size:1.15rem;line-height:2;}
+.warmup-q .hint{font-size:.85rem;color:#8a7f6a;display:block;margin-top:8px;}
+.vocab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:10px;}
+.vcard{background:#fff;border:1px solid #e5dcc8;border-radius:16px;padding:18px 16px;text-align:center;transition:.25s;cursor:pointer;position:relative;}
+.vcard:hover{transform:translateY(-5px);box-shadow:0 12px 28px rgba(0,0,0,.12);border-color:var(--gold);}
+.vcard .hanzi{font-family:'Noto Serif SC',serif;font-size:1.9rem;font-weight:900;}
+.vcard .pinyin{color:var(--red);font-weight:600;margin-top:4px;font-size:.95rem;}
+.vcard .eng{color:#7a7060;font-size:.83rem;margin-top:4px;}
+.vcard .speak-mini{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:.95rem;opacity:.4;transition:.2s;}
+.vcard .speak-mini:hover{opacity:1;transform:scale(1.2);}
+.grammar-box{background:linear-gradient(135deg,#fdf8ee,#f6eeda);border:1px dashed var(--gold);border-radius:16px;padding:24px 28px;margin-top:18px;}
+.grammar-box .formula{font-family:'Noto Serif SC',serif;font-size:1.35rem;font-weight:900;color:var(--red-d);text-align:center;margin:10px 0 16px;}
+.grammar-box .ex{display:flex;justify-content:space-between;gap:16px;padding:10px 4px;border-bottom:1px solid #e9dfc9;font-size:.98rem;flex-wrap:wrap;}
+.grammar-box .ex b{color:var(--red-d);}
+.grammar-box .ex .tr{color:#7a7060;}
+.dialogue{margin-top:8px;display:flex;flex-direction:column;gap:14px;}
+.line{display:flex;gap:14px;align-items:flex-start;}
+.line .who{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-family:'Noto Serif SC',serif;color:#fff;flex-shrink:0;font-size:1.1rem;}
+.line.t .who{background:var(--red);}
+.line.s .who{background:var(--jade);}
+.line .bubble{background:#fff;border:1px solid #e5dcc8;padding:14px 20px;border-radius:4px 18px 18px 18px;line-height:1.9;font-size:1.02rem;flex:1;}
+.line .bubble .py{color:#a39680;font-size:.82rem;display:block;margin-top:4px;}
+.line .bubble .en{display:block;color:#7a7060;font-size:.85rem;margin-top:4px;font-style:italic;}
+.deck-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px;}
+.dots{display:flex;gap:8px;}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(247,242,232,.25);cursor:pointer;transition:.3s;}
+.dot.on{background:var(--gold);transform:scale(1.3);}
+.nav-btn{background:rgba(247,242,232,.1);color:var(--paper);border:1px solid rgba(247,242,232,.25);padding:12px 24px;border-radius:99px;cursor:pointer;font-family:inherit;font-size:.9rem;transition:.25s;}
+.nav-btn:hover:not(:disabled){background:var(--gold);color:var(--ink);border-color:var(--gold);}
+.nav-btn:disabled{opacity:.3;cursor:default;}
+.slide-counter{font-size:.8rem;color:var(--mist);letter-spacing:2px;}
+
+/* ---------- voice chat ---------- */
+.chat-shell{background:var(--card);color:var(--ink);border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden;}
+.chat-top{display:flex;align-items:center;gap:22px;padding:24px 32px;background:linear-gradient(135deg,var(--red),var(--red-d));color:#fff;}
+.avatar{width:152px;height:152px;border-radius:50%;background:#120a12;position:relative;}
+.avatar.speaking::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:3px solid rgba(255,255,255,.8);animation:pulse 1s ease-out infinite;}
+@keyframes pulse{from{transform:scale(.9);opacity:1}to{transform:scale(1.35);opacity:0}}
+.chat-top .t-name{font-weight:900;font-size:1.3rem;}
+.chat-top .t-status{font-size:.8rem;opacity:.85;}
+.mic-state{font-size:.75rem;background:rgba(255,255,255,.15);padding:6px 14px;border-radius:99px;}
+.mouth{transform-box:fill-box;transform-origin:center;}
+.avatar.speaking .mouth{animation:mouthTalk .26s ease-in-out infinite alternate;}
+@keyframes mouthTalk{from{transform:scaleY(.55) scaleX(.92)}to{transform:scaleY(1.5) scaleX(1.06)}}
+#voice-toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(20,12,20,.92);
+  border:1px solid rgba(232,195,90,.55);color:var(--gold);padding:13px 26px;border-radius:99px;font-size:.88rem;
+  box-shadow:0 8px 30px rgba(0,0,0,.5),0 0 20px rgba(255,45,120,.25);backdrop-filter:blur(8px);display:none;animation:toastBob 1.6s ease-in-out infinite;}
+@keyframes toastBob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-7px)}}
+#chat-log{height:420px;overflow-y:auto;padding:26px;display:flex;flex-direction:column;gap:16px;background:
+  radial-gradient(circle at 15% 20%, rgba(201,162,39,.06), transparent 40%),
+  radial-gradient(circle at 85% 80%, rgba(200,54,27,.05), transparent 40%), #fffdf8;}
+.msg{max-width:78%;padding:13px 18px;border-radius:18px;line-height:1.9;font-size:.98rem;animation:msgIn .35s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.msg .meta{font-size:.7rem;opacity:.55;margin-bottom:4px;}
+.msg.teacher{align-self:flex-start;background:#f3ecdd;border:1px solid #e5dcc8;border-bottom-left-radius:4px;}
+.msg.teacher .py{color:var(--red);font-weight:600;font-size:.85rem;display:block;margin-top:2px;}
+.msg.teacher .tr{display:block;color:#8a7f6a;font-size:.82rem;font-style:italic;margin-top:2px;}
+.msg.user{align-self:flex-end;background:var(--jade);color:#fff;border-bottom-right-radius:4px;}
+.msg.user .fix{display:block;font-size:.82rem;background:rgba(0,0,0,.18);margin-top:6px;padding:6px 10px;border-radius:8px;}
+.msg.sys{align-self:center;background:#efe7d4;color:#8a7f6a;font-size:.8rem;padding:7px 16px;border-radius:99px;}
+.msg .listen{background:none;border:none;cursor:pointer;margin-left:6px;font-size:.85rem;opacity:.5;transition:.2s;}
+.msg .listen:hover{opacity:1;transform:scale(1.25);}
+.typing{align-self:flex-start;display:flex;gap:5px;padding:14px 18px;background:#f3ecdd;border-radius:18px;border-bottom-left-radius:4px;}
+.typing i{width:8px;height:8px;border-radius:50%;background:#b7a88c;animation:tp 1.2s infinite;}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes tp{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.chat-input{display:flex;gap:12px;padding:18px 22px;background:#f6f0e2;border-top:1px solid #e5dcc8;}
+.chat-input input{flex:1;border:1.5px solid #ddd2ba;background:#fff;border-radius:99px;padding:13px 22px;font-family:inherit;font-size:.95rem;outline:none;transition:.25s;color:var(--ink);}
+.chat-input input:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,162,39,.15);}
+.mic-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--red),var(--red-d));color:#fff;font-size:1.25rem;display:grid;place-items:center;transition:.25s;box-shadow:0 6px 18px rgba(200,54,27,.4);flex-shrink:0;}
+.mic-btn:hover{transform:scale(1.08);}
+.mic-btn.recording{animation:rec 1s ease-in-out infinite;background:linear-gradient(135deg,#8f1f0d,#c8361b);}
+@keyframes rec{0%,100%{box-shadow:0 0 0 0 rgba(200,54,27,.6)}50%{box-shadow:0 0 0 14px rgba(200,54,27,0)}}
+.send-btn{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;background:var(--jade);color:#fff;font-size:1.1rem;display:grid;place-items:center;transition:.25s;flex-shrink:0;}
+.send-btn:hover{transform:scale(1.08);}
+.suggest-row{display:flex;gap:8px;flex-wrap:wrap;padding:12px 22px;background:#f6f0e2;}
+.suggest{background:#fff;border:1px solid #ddd2ba;color:#6d6350;font-size:.78rem;padding:6px 14px;border-radius:99px;cursor:pointer;transition:.2s;font-family:inherit;}
+.suggest:hover{border-color:var(--gold);color:var(--red-d);}
+
+/* ---------- quiz ---------- */
+.quiz-shell{background:var(--card);color:var(--ink);border-radius:24px;padding:44px;box-shadow:0 30px 80px rgba(0,0,0,.5);text-align:center;min-height:430px;display:flex;flex-direction:column;justify-content:center;}
+.q-progress{height:8px;background:#eee4cf;border-radius:99px;overflow:hidden;margin-bottom:30px;}
+.q-progress i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--red));width:0;transition:.5s;border-radius:99px;}
+.q-hanzi{font-family:'Noto Serif SC',serif;font-size:3.2rem;font-weight:900;margin:10px 0 4px;}
+.q-pinyin{color:var(--red);font-weight:600;margin-bottom:34px;font-size:1.05rem;}
+.q-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:560px;margin:0 auto;width:100%;}
+@media(max-width:560px){.q-opts{grid-template-columns:1fr}.slide{padding:34px 24px 70px}}
+.q-opt{padding:16px;border-radius:14px;border:2px solid #e5dcc8;background:#fff;cursor:pointer;font-family:inherit;font-size:.95rem;transition:.2s;color:var(--ink);}
+.q-opt:hover{border-color:var(--gold);transform:translateY(-2px);}
+.q-opt.correct{background:#e2f2e9;border-color:var(--jade);color:var(--jade);font-weight:700;}
+.q-opt.wrong{background:#fbe4df;border-color:var(--red);color:var(--red);}
+.q-feedback{min-height:30px;margin-top:20px;font-weight:600;}
+.q-score-big{font-family:'Noto Serif SC',serif;font-size:4rem;font-weight:900;color:var(--red-d);}
+.flash-cta{margin-top:22px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+.how-card{background:rgba(247,242,232,.05);border:1px solid rgba(201,162,39,.22);border-radius:18px;padding:26px;transition:.25s;}
+.how-card:hover{transform:translateY(-4px);border-color:var(--gold);background:rgba(247,242,232,.08);}
+.how-card h4{font-family:'Noto Serif SC',serif;color:var(--gold);margin:12px 0 8px;font-size:1.05rem;}
+.how-card p{font-size:.85rem;color:var(--mist);line-height:1.75;}
+.how-num{width:38px;height:38px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1.1rem;box-shadow:0 4px 14px rgba(200,54,27,.4);}
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;}
+.pcard{background:rgba(247,242,232,.05);border:1px solid rgba(201,162,39,.22);border-radius:18px;padding:26px;transition:.25s;}
+.pcard:hover{border-color:rgba(201,162,39,.5);transform:translateY(-3px);}
+.pcard h4{color:var(--gold);font-family:'Noto Serif SC',serif;margin-bottom:14px;font-size:1.02rem;}
+.chip{display:inline-block;background:rgba(255,45,120,.13);border:1px solid rgba(255,45,120,.45);color:#ff9dbb;padding:5px 14px;border-radius:99px;font-size:.8rem;margin:0 6px 8px 0;}
+.sbar{height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin:6px 0 12px;}
+.sbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--red));border-radius:99px;}
+.xpbar{height:10px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#5be3ff,var(--gold));border-radius:99px;}
+.mist-row{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--mist);line-height:1.7;}
+button{touch-action:manipulation;}
+@media(max-width:700px){
+  .chat-top .avatar{width:108px;height:108px;}
+  nav{padding:10px 12px;gap:8px;}
+  .logo{font-size:1.05rem;}
+  .logo .seal{width:28px;height:28px;font-size:.8rem;}
+  .progress-pill{display:none;}
+  .nav-links{overflow-x:auto;max-width:62vw;scrollbar-width:none;}
+  .nav-links::-webkit-scrollbar{display:none;}
+  .nav-links a{padding:6px 10px;font-size:.76rem;white-space:nowrap;}
+  section{padding:64px 14px;}
+  .hero{padding:100px 14px 30px;}
+  .slide{padding:26px 18px 56px;min-height:auto;}
+  .deck{min-height:auto;}
+  .vocab-grid{grid-template-columns:1fr 1fr;gap:10px;}
+  .vcard .hanzi{font-size:1.5rem;}
+  .deck-nav{flex-wrap:wrap;gap:8px;}
+  .nav-btn{padding:12px 18px;min-height:44px;}
+  .chat-shell{border-radius:16px;}
+  #chat-log{height:calc(100dvh - 330px);min-height:300px;padding:16px;}
+  .chat-top{padding:16px 16px;gap:12px;}
+  .chat-top .avatar{width:104px;height:104px;}
+  .chat-top .t-name{font-size:1.1rem;}
+  .chat-input{padding:10px 10px calc(10px + env(safe-area-inset-bottom));gap:8px;}
+  .chat-input input{font-size:16px;padding:12px 16px;} /* 16px stops iOS auto-zoom */
+  .mic-btn,.send-btn{width:48px;height:48px;min-width:48px;}
+  .suggest-row{padding:8px 10px;}
+  .suggest{font-size:.85rem;padding:8px 13px;min-height:36px;}
+  .quiz-shell{padding:26px 16px;}
+  .q-opts{grid-template-columns:1fr;}
+  .q-opt{min-height:48px;}
+  .btn{padding:14px 22px;font-size:.93rem;}
+  .msg{max-width:88%;font-size:.93rem;}
+  .msg-ava{width:32px;height:32px;}
+  .big-neon{font-size:42px;letter-spacing:8px;}
+  .h-sign{font-size:24px;letter-spacing:6px;}
+  .neon-red,.neon-gold,.neon-cyan,.neon-pink,.neon-green,.neon-orange{font-size:21px;}
+  #city svg{height:38vh;min-height:260px;}
+}
+@media(max-width:400px){
+  .vocab-grid{grid-template-columns:1fr;}
+  .chat-top .avatar{width:86px;height:86px;}
+}
+#diag{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:200;width:min(560px,92vw);
+  background:#0d0812;border:1px solid var(--gold);border-radius:14px;padding:16px 20px;font-size:.78rem;color:#d8f0d0;
+  box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;line-height:1.7;white-space:pre-wrap;font-family:monospace;max-height:60vh;overflow-y:auto;}
+#diag b{color:var(--gold)}
+#health-fab{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:150;width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,#123a2e,#0d2a21);border:1.5px solid rgba(125,255,168,.5);color:#7dffa8;font-size:1.3rem;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);display:grid;place-items:center;transition:.25s;}
+#health-fab:hover{transform:scale(1.1);}
+#health-fab .dot{position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;background:#7dffa8;box-shadow:0 0 8px #7dffa8;}
+#health-fab.bad .dot{background:#ff5b5b;box-shadow:0 0 8px #ff5b5b;animation:tp 1s infinite;}
+#health-panel{position:fixed;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:150;width:min(360px,92vw);
+  background:#0d0812;border:1px solid rgba(125,255,168,.4);border-radius:16px;padding:18px 20px;display:none;
+  box-shadow:0 24px 60px rgba(0,0,0,.7);font-size:.8rem;line-height:1.6;}
+#health-panel h4{color:#7dffa8;font-family:'Noto Serif SC',serif;margin-bottom:10px;font-size:.95rem;}
+.hrow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07);color:var(--mist);}
+.hrow b{color:#eee;font-weight:500;text-align:right;max-width:60%;}
+.hrow.ok b{color:#7dffa8;} .hrow.warn b{color:#ffd166;} .hrow.bad b{color:#ff8a8a;}
+#health-close{float:right;cursor:pointer;color:#fff;}
+#live-hear{display:none;align-items:center;gap:12px;padding:10px 22px;background:#f0e8d4;border-top:1px solid #e5dcc8;font-size:1.12rem;font-weight:600;color:var(--ink);min-height:56px;}
+#live-hear.final{background:#e2f2e9;color:var(--jade);}
+#live-hear.err{background:#fbe4df;color:var(--red);}
+#live-hear .volbar{display:flex;align-items:flex-end;gap:3px;height:36px;flex-shrink:0;}
+#live-hear .volbar i{width:6px;background:var(--red);border-radius:3px;height:8px;transition:height .07s;}
+#live-hear.final .volbar i{background:var(--jade);}
+#live-caret{animation:tp 1s infinite;color:var(--red);font-weight:400;}
+@media(max-width:700px){#live-hear{font-size:1rem;padding:8px 12px;}}
+/* animated avatar — full life */
+#av-body{transform-box:fill-box;transform-origin:center 62%;animation:avBreathe 3.2s ease-in-out infinite;}
+@keyframes avBreathe{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.022) translateY(1.1px)}}
+#av-head{transform-box:fill-box;transform-origin:center 72%;}
+.avatar[data-mood="idle"] #av-head{animation:avSway 6.5s ease-in-out infinite;}
+@keyframes avSway{0%,100%{transform:rotate(0deg)}28%{transform:rotate(1.7deg)}72%{transform:rotate(-1.7deg)}}
+.avatar[data-mood="speaking"] #av-head{animation:avTalk .42s ease-in-out infinite;}
+@keyframes avTalk{0%,100%{transform:rotate(-2.2deg) translateY(.6px)}50%{transform:rotate(2.2deg) translateY(-1px)}}
+.avatar[data-mood="listening"] #av-head{animation:avListen 2.1s ease-in-out infinite;}
+@keyframes avListen{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(1.8px) rotate(1deg)}}
+.avatar[data-mood="happy"] #av-head{animation:avBounce .62s ease-in-out 4;}
+@keyframes avBounce{0%,100%{transform:translateY(0) scale(1)}30%{transform:translateY(-3.5px) scale(1.025)}62%{transform:translateY(.8px)}}
+.avatar[data-mood="curious"] #av-head{transform:rotate(-2.6deg);}
+.avatar.speaking .brow{animation:browBounce 1.15s ease-in-out infinite;}
+@keyframes browBounce{0%,100%{transform:translateY(0)}45%{transform:translateY(-2.2px)}}
+.lid{transform-box:fill-box;transform-origin:center top;transform:scaleY(.05);transition:transform .06s;}
+.lid.blink{transform:scaleY(1);}
+.pupil{transform-box:fill-box;transform-origin:center;transition:transform .2s ease;}
+.avatar[data-look="l"] .pupil{transform:translateX(-1.9px);}
+.avatar[data-look="r"] .pupil{transform:translateX(1.9px);}
+.avatar[data-look="u"] .pupil{transform:translateY(-1.5px);}
+.brow{transition:transform .3s;}
+.eye{transform-box:fill-box;transform-origin:center;transition:transform .3s;}
+#mouth-open{transform-box:fill-box;transform-origin:center;transition:transform .05s;}
+.avatar[data-mood="speaking"] #mouth-smile{display:none;}
+.avatar[data-mood="speaking"] #mouth-open{display:block;}
+.avatar[data-mood="listening"] .brow{transform:translateY(-2.8px);}
+.avatar[data-mood="listening"] .eye{transform:scale(1.12);}
+.avatar[data-mood="curious"] .brow{transform:translateY(-3px);}
+.avatar[data-mood="curious"] .eye{transform:scale(1.1);}
+.avatar[data-mood="happy"] .brow{transform:translateY(-2.2px);}
+.avatar[data-mood="happy"] #mouth-smile{stroke-width:3.6;}
+.avatar[data-mood="happy"] .blush{opacity:.65 !important;}
+.avatar[data-mood="thinking"] #mouth-smile{transform:translateY(1.5px);}
+.avatar[data-mood="angry"] .bl{transform:translateY(1.8px) rotate(-10deg);}
+.avatar[data-mood="angry"] .br{transform:translateY(1.8px) rotate(10deg);}
+.avatar[data-mood="angry"] #mouth-smile{display:none;}
+.avatar[data-mood="angry"] #mouth-frown{display:block;}
+.avatar[data-mood="angry"] .eye{transform:scale(.94);}
+.avatar[data-mood="angry"] #av-head{animation:avShake .45s ease-in-out infinite;}
+@keyframes avShake{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-1.8px) rotate(-.8deg)}75%{transform:translateX(1.8px) rotate(.8deg)}}
+.avatar[data-mood="angry"]{border-color:rgba(255,80,80,.85) !important;box-shadow:0 0 26px rgba(255,60,60,.75) !important;}
+.avatar[data-mood="angry"] .blush{opacity:.5 !important;}
+/* ===== Raika-style chat stage ===== */
+.chat-stage{position:relative;display:flex;flex-direction:column;align-items:center;padding:30px 20px 22px;
+  background:radial-gradient(420px 260px at 50% 24%, rgba(255,45,120,.20), transparent 70%),radial-gradient(340px 220px at 50% 0%, rgba(201,162,39,.14), transparent 70%),linear-gradient(#1a0f1c,#120a14);}
+.stage-ring{position:absolute;top:24px;left:50%;transform:translateX(-50%);width:264px;height:264px;border-radius:50%;
+  border:1.5px solid rgba(232,195,90,.35);box-shadow:0 0 40px rgba(255,45,120,.22) inset,0 0 30px rgba(255,45,120,.18);pointer-events:none;}
+.stage-ring::after{content:'';position:absolute;inset:-9px;border-radius:50%;border:1px dashed rgba(255,45,120,.35);animation:spinSlow 26s linear infinite;}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+.chat-stage .avatar{width:232px;height:232px;border-width:2.5px;}
+.stage-name{margin-top:12px;font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.2rem;color:#f7f2e8;letter-spacing:1px;}
+.stage-name small{font-family:'Noto Sans SC',sans-serif;font-weight:400;color:var(--mist);font-size:.78rem;margin-left:8px;}
+.stage-pill{margin-top:8px;font-size:.75rem;background:rgba(255,255,255,.12);color:var(--mist);padding:6px 16px;border-radius:99px;max-width:92%;text-align:center;}
+.chat-stage #test-voice{position:absolute;top:14px;right:14px;}
+.chat-stage .t-online{position:absolute;top:14px;left:16px;font-size:.68rem;color:#7dffa8;letter-spacing:1px;}
+/* big centered mic */
+#whatsay{display:block;margin:12px auto 0;background:#efe7ff;border:1px solid #d5c6ff;color:#6d4df2;font-family:inherit;font-size:.88rem;font-weight:600;padding:9px 22px;border-radius:99px;cursor:pointer;transition:.2s;}
+#whatsay:hover{background:#e2d4ff;}
+.mic-row{display:flex;justify-content:center;padding:14px 0 18px;background:#f6f0e2;}
+.mic-row .mic-btn{width:86px;height:86px;font-size:2rem;box-shadow:0 10px 26px rgba(200,54,27,.5);}
+/* lesson card strip */
+.card-strip{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 18px;scrollbar-width:none;}
+.card-strip::-webkit-scrollbar{display:none;}
+.lcard{flex:0 0 auto;width:172px;background:#fff;border:1px solid #e7dfcd;border-radius:16px;padding:16px;cursor:pointer;transition:.22s;box-shadow:0 4px 14px rgba(0,0,0,.06);}
+.lcard:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.12);border-color:#c9a227;}
+.lcard .ic{font-size:1.5rem;}
+.lcard b{display:block;margin-top:8px;font-family:'Noto Serif SC',serif;font-size:.95rem;color:var(--ink);}
+.lcard span{display:block;margin-top:4px;font-size:.72rem;color:#8a7f6a;line-height:1.5;}
+/* bubble polish */
+.msg.teacher{background:#fff;border:1px solid #ece4d2;box-shadow:0 3px 10px rgba(0,0,0,.05);}
+.msg.user{background:linear-gradient(135deg,#8b5cf6,#6d28d9);box-shadow:0 4px 14px rgba(109,40,217,.35);}
+.tr-toggle{background:none;border:1px solid #ddd2ba;border-radius:8px;color:#8a7f6a;cursor:pointer;font-size:.72rem;padding:2px 7px;margin-left:6px;font-family:inherit;}
+.tr-toggle:hover{color:var(--red-d);border-color:var(--gold);}
+.msg.teacher.tr-only .py,.msg.teacher.tr-only .tr{display:none;}
+@media(max-width:700px){
+  .chat-stage .avatar{width:168px;height:168px;}
+  .stage-ring{width:196px;height:196px;top:22px;}
+  .mic-row .mic-btn{width:76px;height:76px;font-size:1.7rem;}
+}
+footer{text-align:center;padding:60px 24px 40px;color:var(--mist);font-size:.82rem;position:relative;z-index:2;}
+footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red);border-radius:10px;display:grid;place-items:center;color:#fff;font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.4rem;box-shadow:0 8px 24px rgba(200,54,27,.4);}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="city"><svg viewBox="0 0 1440 620" preserveAspectRatio="xMidYMax slice"><defs><linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0612"/><stop offset=".55" stop-color="#0a0612" stop-opacity=".55"/><stop offset="1" stop-color="#0a0612" stop-opacity="0"/></linearGradient><linearGradient id="glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2d78" stop-opacity="0"/><stop offset="1" stop-color="#ff2d78" stop-opacity=".14"/></linearGradient></defs><rect width="1440" height="620" fill="url(#glow)"/><path d="M0,420 Q180,340 360,400 T720,380 T1080,405 T1440,370 L1440,620 L0,620 Z" fill="#150d20"/><rect x="20" y="200" width="90" height="420" fill="#171126"/><rect x="47" y="190" width="36" height="10" fill="#171126"/><line x1="65" y1="190" x2="65" y2="174" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="75" y="214" width="7" height="10"/><rect x="27" y="280" width="7" height="10"/><rect x="43" y="302" width="7" height="10"/><rect x="75" y="302" width="7" height="10"/></g><g fill="#4a2b52"><rect x="59" y="236" width="7" height="10"/><rect x="75" y="258" width="7" height="10"/><rect x="91" y="368" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="27" y="258" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="59" y="302" width="7" height="10"/><rect x="75" y="390" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="27" y="456" width="7" height="10"/><rect x="27" y="544" width="7" height="10"/><rect x="75" y="588" width="7" height="10"/></g><rect x="140" y="260" width="70" height="360" fill="#171126"/><rect x="161" y="250" width="28" height="10" fill="#171126"/><line x1="175" y1="250" x2="175" y2="234" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".7"><rect x="179" y="296" width="7" height="10"/><rect x="163" y="384" width="7" height="10"/></g><g fill="#4a2b52"><rect x="147" y="318" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="147" y="340" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="163" y="340" width="7" height="10"/><rect x="195" y="340" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="179" y="340" width="7" height="10"/><rect x="179" y="472" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="195" y="560" width="7" height="10"/></g><rect x="240" y="180" width="100" height="440" fill="#171126"/><rect x="270" y="170" width="40" height="10" fill="#171126"/><line x1="290" y1="170" x2="290" y2="154" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e"><rect x="311" y="194" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="311" y="216" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="327" y="216" width="7" height="10"/><rect x="295" y="414" width="7" height="10"/><rect x="295" y="436" width="7" height="10"/><rect x="247" y="458" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="263" y="282" width="7" height="10"/><rect x="311" y="304" width="7" height="10"/><rect x="247" y="392" width="7" height="10"/><rect x="311" y="436" width="7" height="10"/><rect x="247" y="546" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="247" y="370" width="7" height="10"/><rect x="311" y="590" width="7" height="10"/></g><g fill="#4a2b52"><rect x="311" y="546" width="7" height="10"/><rect x="247" y="568" width="7" height="10"/></g><rect x="370" y="230" width="80" height="390" fill="#171126"/><rect x="394" y="220" width="32" height="10" fill="#171126"/><line x1="410" y1="220" x2="410" y2="204" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e"><rect x="377" y="266" width="7" height="10"/><rect x="377" y="376" width="7" height="10"/><rect x="425" y="398" width="7" height="10"/></g><g fill="#4a2b52"><rect x="393" y="266" width="7" height="10"/><rect x="409" y="574" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="425" y="354" width="7" height="10"/><rect x="409" y="376" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="377" y="486" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="377" y="596" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="409" y="596" width="7" height="10"/></g><rect x="480" y="160" width="90" height="460" fill="#171126"/><rect x="507" y="150" width="36" height="10" fill="#171126"/><line x1="525" y1="150" x2="525" y2="134" stroke="#171126" stroke-width="3"/><g fill="#4a2b52"><rect x="551" y="218" width="7" height="10"/><rect x="551" y="240" width="7" height="10"/><rect x="503" y="460" width="7" height="10"/><rect x="503" y="548" width="7" height="10"/><rect x="535" y="592" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="487" y="284" width="7" height="10"/><rect x="503" y="372" width="7" height="10"/><rect x="551" y="372" width="7" height="10"/><rect x="551" y="394" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="487" y="372" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="535" y="372" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="551" y="460" width="7" height="10"/><rect x="551" y="482" width="7" height="10"/><rect x="535" y="526" width="7" height="10"/></g><rect x="600" y="250" width="70" height="370" fill="#171126"/><rect x="621" y="240" width="28" height="10" fill="#171126"/><line x1="635" y1="240" x2="635" y2="224" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="655" y="264" width="7" height="10"/></g><g fill="#4a2b52"><rect x="623" y="308" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="655" y="330" width="7" height="10"/><rect x="607" y="484" width="7" height="10"/><rect x="639" y="484" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="655" y="374" width="7" height="10"/><rect x="655" y="484" width="7" height="10"/><rect x="655" y="594" width="7" height="10"/></g><rect x="700" y="190" width="95" height="430" fill="#171126"/><rect x="728" y="180" width="38" height="10" fill="#171126"/><line x1="748" y1="180" x2="748" y2="164" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".5"><rect x="707" y="204" width="7" height="10"/><rect x="723" y="248" width="7" height="10"/><rect x="723" y="314" width="7" height="10"/><rect x="723" y="402" width="7" height="10"/><rect x="755" y="446" width="7" height="10"/><rect x="723" y="512" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="723" y="204" width="7" height="10"/><rect x="723" y="292" width="7" height="10"/><rect x="707" y="468" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="755" y="248" width="7" height="10"/><rect x="707" y="336" width="7" height="10"/><rect x="771" y="358" width="7" height="10"/></g><g fill="#4a2b52"><rect x="723" y="380" width="7" height="10"/><rect x="755" y="512" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="723" y="424" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="755" y="468" width="7" height="10"/></g><rect x="820" y="240" width="75" height="380" fill="#171126"/><rect x="842" y="230" width="30" height="10" fill="#171126"/><line x1="858" y1="230" x2="858" y2="214" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e"><rect x="859" y="254" width="7" height="10"/><rect x="827" y="496" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="843" y="320" width="7" height="10"/><rect x="827" y="452" width="7" height="10"/><rect x="859" y="496" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="827" y="342" width="7" height="10"/><rect x="843" y="430" width="7" height="10"/><rect x="859" y="430" width="7" height="10"/><rect x="859" y="562" width="7" height="10"/><rect x="843" y="584" width="7" height="10"/></g><g fill="#4a2b52"><rect x="843" y="342" width="7" height="10"/><rect x="827" y="386" width="7" height="10"/><rect x="859" y="408" width="7" height="10"/><rect x="859" y="518" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="875" y="518" width="7" height="10"/></g><rect x="920" y="170" width="90" height="450" fill="#171126"/><rect x="947" y="160" width="36" height="10" fill="#171126"/><line x1="965" y1="160" x2="965" y2="144" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="991" y="184" width="7" height="10"/><rect x="991" y="426" width="7" height="10"/><rect x="959" y="514" width="7" height="10"/><rect x="975" y="514" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="927" y="250" width="7" height="10"/><rect x="959" y="404" width="7" height="10"/><rect x="991" y="470" width="7" height="10"/><rect x="975" y="580" width="7" height="10"/></g><g fill="#4a2b52"><rect x="943" y="294" width="7" height="10"/><rect x="959" y="316" width="7" height="10"/><rect x="927" y="338" width="7" height="10"/><rect x="943" y="382" width="7" height="10"/><rect x="959" y="382" width="7" height="10"/><rect x="975" y="382" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="943" y="338" width="7" height="10"/><rect x="959" y="536" width="7" height="10"/></g><rect x="1040" y="210" width="80" height="410" fill="#171126"/><rect x="1064" y="200" width="32" height="10" fill="#171126"/><line x1="1080" y1="200" x2="1080" y2="184" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".7"><rect x="1047" y="246" width="7" height="10"/><rect x="1095" y="422" width="7" height="10"/></g><g fill="#4a2b52"><rect x="1063" y="246" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="1047" y="334" width="7" height="10"/><rect x="1047" y="532" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="1079" y="466" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="1047" y="488" width="7" height="10"/><rect x="1079" y="510" width="7" height="10"/><rect x="1095" y="576" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="1079" y="488" width="7" height="10"/></g><rect x="1150" y="160" width="95" height="460" fill="#171126"/><rect x="1178" y="150" width="38" height="10" fill="#171126"/><line x1="1198" y1="150" x2="1198" y2="134" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="1205" y="196" width="7" height="10"/><rect x="1205" y="482" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="1157" y="240" width="7" height="10"/><rect x="1157" y="438" width="7" height="10"/><rect x="1189" y="438" width="7" height="10"/><rect x="1157" y="548" width="7" height="10"/><rect x="1189" y="570" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="1173" y="306" width="7" height="10"/><rect x="1157" y="394" width="7" height="10"/><rect x="1189" y="504" width="7" height="10"/></g><g fill="#4a2b52"><rect x="1205" y="372" width="7" height="10"/><rect x="1157" y="570" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="1189" y="416" width="7" height="10"/><rect x="1173" y="460" width="7" height="10"/><rect x="1205" y="548" width="7" height="10"/><rect x="1205" y="570" width="7" height="10"/><rect x="1189" y="592" width="7" height="10"/></g><rect x="1270" y="230" width="80" height="390" fill="#171126"/><rect x="1294" y="220" width="32" height="10" fill="#171126"/><line x1="1310" y1="220" x2="1310" y2="204" stroke="#171126" stroke-width="3"/><g fill="#4a2b52"><rect x="1293" y="266" width="7" height="10"/><rect x="1309" y="442" width="7" height="10"/><rect x="1309" y="464" width="7" height="10"/><rect x="1325" y="574" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="1293" y="354" width="7" height="10"/><rect x="1277" y="508" width="7" height="10"/><rect x="1325" y="552" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="1309" y="398" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="1325" y="420" width="7" height="10"/><rect x="1293" y="442" width="7" height="10"/><rect x="1293" y="486" width="7" height="10"/><rect x="1293" y="574" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="1325" y="508" width="7" height="10"/><rect x="1277" y="530" width="7" height="10"/></g><rect x="1380" y="190" width="60" height="430" fill="#171126"/><rect x="1398" y="180" width="24" height="10" fill="#171126"/><line x1="1410" y1="180" x2="1410" y2="164" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".7"><rect x="1387" y="204" width="7" height="10"/><rect x="1403" y="314" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="1403" y="204" width="7" height="10"/><rect x="1387" y="336" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="1419" y="314" width="7" height="10"/><rect x="1419" y="490" width="7" height="10"/></g><rect x="10" y="140" width="110" height="480" fill="#0d0a16"/><rect x="43" y="130" width="44" height="10" fill="#0d0a16"/><line x1="65" y1="130" x2="65" y2="114" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".7"><rect x="17" y="154" width="7" height="10"/><rect x="81" y="154" width="7" height="10"/><rect x="17" y="330" width="7" height="10"/><rect x="65" y="396" width="7" height="10"/></g><g fill="#ffd98a"><rect x="65" y="154" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="33" y="176" width="7" height="10"/><rect x="49" y="242" width="7" height="10"/><rect x="33" y="352" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="49" y="176" width="7" height="10"/><rect x="65" y="176" width="7" height="10"/><rect x="97" y="242" width="7" height="10"/><rect x="17" y="352" width="7" height="10"/><rect x="65" y="506" width="7" height="10"/><rect x="65" y="594" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="49" y="198" width="7" height="10"/><rect x="49" y="396" width="7" height="10"/></g><g fill="#ff7a45"><rect x="81" y="220" width="7" height="10"/><rect x="33" y="286" width="7" height="10"/><rect x="17" y="506" width="7" height="10"/><rect x="17" y="528" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="65" y="242" width="7" height="10"/><rect x="49" y="440" width="7" height="10"/><rect x="65" y="440" width="7" height="10"/><rect x="97" y="506" width="7" height="10"/><rect x="17" y="550" width="7" height="10"/></g><g fill="#5be3ff"><rect x="97" y="264" width="7" height="10"/></g><g fill="#c9a227"><rect x="17" y="286" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="49" y="286" width="7" height="10"/><rect x="97" y="528" width="7" height="10"/><rect x="65" y="572" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="65" y="286" width="7" height="10"/><rect x="17" y="484" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="17" y="374" width="7" height="10"/><rect x="49" y="484" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="33" y="396" width="7" height="10"/><rect x="81" y="440" width="7" height="10"/><rect x="97" y="484" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="17" y="462" width="7" height="10"/><rect x="97" y="462" width="7" height="10"/><rect x="17" y="594" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="65" y="550" width="7" height="10"/></g><rect x="150" y="90" width="90" height="530" fill="#0d0a16"/><rect x="177" y="80" width="36" height="10" fill="#0d0a16"/><line x1="195" y1="80" x2="195" y2="64" stroke="#0d0a16" stroke-width="3"/><g fill="#5be3ff" opacity=".5"><rect x="173" y="104" width="7" height="10"/><rect x="205" y="170" width="7" height="10"/><rect x="221" y="280" width="7" height="10"/><rect x="221" y="456" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="205" y="104" width="7" height="10"/><rect x="173" y="148" width="7" height="10"/><rect x="205" y="522" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="189" y="126" width="7" height="10"/><rect x="189" y="170" width="7" height="10"/><rect x="221" y="500" width="7" height="10"/><rect x="157" y="522" width="7" height="10"/><rect x="221" y="566" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="221" y="126" width="7" height="10"/><rect x="221" y="170" width="7" height="10"/><rect x="157" y="434" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="189" y="148" width="7" height="10"/><rect x="205" y="258" width="7" height="10"/><rect x="205" y="346" width="7" height="10"/><rect x="189" y="566" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="157" y="170" width="7" height="10"/><rect x="173" y="588" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="173" y="170" width="7" height="10"/><rect x="189" y="280" width="7" height="10"/><rect x="189" y="302" width="7" height="10"/><rect x="189" y="500" width="7" height="10"/><rect x="189" y="588" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="173" y="192" width="7" height="10"/><rect x="189" y="214" width="7" height="10"/></g><g fill="#ffd98a"><rect x="205" y="192" width="7" height="10"/><rect x="205" y="390" width="7" height="10"/><rect x="221" y="390" width="7" height="10"/><rect x="189" y="456" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="221" y="192" width="7" height="10"/></g><g fill="#5be3ff"><rect x="173" y="214" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="157" y="280" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="205" y="302" width="7" height="10"/><rect x="189" y="434" width="7" height="10"/><rect x="221" y="478" width="7" height="10"/><rect x="189" y="544" width="7" height="10"/></g><g fill="#c9a227"><rect x="221" y="368" width="7" height="10"/><rect x="173" y="566" width="7" height="10"/></g><g fill="#ff7a45"><rect x="173" y="412" width="7" height="10"/><rect x="205" y="456" width="7" height="10"/></g><rect x="270" y="170" width="120" height="450" fill="#0d0a16"/><rect x="306" y="160" width="48" height="10" fill="#0d0a16"/><line x1="330" y1="160" x2="330" y2="144" stroke="#0d0a16" stroke-width="3"/><g fill="#ff7a45" opacity=".5"><rect x="309" y="184" width="7" height="10"/><rect x="325" y="228" width="7" height="10"/><rect x="325" y="272" width="7" height="10"/><rect x="277" y="338" width="7" height="10"/><rect x="373" y="360" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="293" y="206" width="7" height="10"/><rect x="277" y="316" width="7" height="10"/><rect x="277" y="492" width="7" height="10"/><rect x="309" y="514" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="357" y="206" width="7" height="10"/></g><g fill="#5be3ff"><rect x="309" y="228" width="7" height="10"/><rect x="325" y="382" width="7" height="10"/><rect x="277" y="536" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="309" y="250" width="7" height="10"/><rect x="341" y="404" width="7" height="10"/><rect x="325" y="426" width="7" height="10"/><rect x="341" y="514" width="7" height="10"/><rect x="309" y="558" width="7" height="10"/><rect x="357" y="558" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="325" y="250" width="7" height="10"/><rect x="309" y="294" width="7" height="10"/><rect x="293" y="404" width="7" height="10"/><rect x="325" y="448" width="7" height="10"/><rect x="357" y="514" width="7" height="10"/><rect x="277" y="558" width="7" height="10"/></g><g fill="#ff7a45"><rect x="357" y="250" width="7" height="10"/><rect x="309" y="272" width="7" height="10"/><rect x="325" y="338" width="7" height="10"/><rect x="341" y="360" width="7" height="10"/><rect x="325" y="492" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="373" y="250" width="7" height="10"/><rect x="341" y="470" width="7" height="10"/></g><g fill="#c9a227"><rect x="293" y="272" width="7" height="10"/><rect x="277" y="360" width="7" height="10"/><rect x="277" y="448" width="7" height="10"/><rect x="309" y="492" width="7" height="10"/><rect x="293" y="558" width="7" height="10"/></g><g fill="#ffd98a"><rect x="341" y="272" width="7" height="10"/><rect x="293" y="316" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="325" y="294" width="7" height="10"/><rect x="293" y="470" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="373" y="294" width="7" height="10"/><rect x="309" y="360" width="7" height="10"/><rect x="309" y="404" width="7" height="10"/><rect x="357" y="470" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="293" y="338" width="7" height="10"/><rect x="309" y="448" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="293" y="360" width="7" height="10"/><rect x="277" y="470" width="7" height="10"/><rect x="341" y="580" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="373" y="382" width="7" height="10"/><rect x="309" y="536" width="7" height="10"/></g><rect x="420" y="60" width="95" height="560" fill="#0d0a16"/><rect x="448" y="50" width="38" height="10" fill="#0d0a16"/><line x1="468" y1="50" x2="468" y2="34" stroke="#0d0a16" stroke-width="3"/><g fill="#5be3ff"><rect x="427" y="74" width="7" height="10"/><rect x="443" y="228" width="7" height="10"/><rect x="475" y="514" width="7" height="10"/><rect x="443" y="536" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="443" y="74" width="7" height="10"/><rect x="475" y="382" width="7" height="10"/><rect x="491" y="514" width="7" height="10"/><rect x="475" y="536" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="427" y="96" width="7" height="10"/><rect x="427" y="140" width="7" height="10"/><rect x="443" y="140" width="7" height="10"/><rect x="443" y="426" width="7" height="10"/><rect x="491" y="580" width="7" height="10"/></g><g fill="#c9a227"><rect x="475" y="96" width="7" height="10"/><rect x="475" y="338" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="427" y="118" width="7" height="10"/><rect x="459" y="118" width="7" height="10"/><rect x="459" y="580" width="7" height="10"/></g><g fill="#ff7a45"><rect x="475" y="118" width="7" height="10"/><rect x="459" y="316" width="7" height="10"/><rect x="459" y="338" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="491" y="118" width="7" height="10"/><rect x="459" y="272" width="7" height="10"/><rect x="443" y="316" width="7" height="10"/><rect x="427" y="338" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="427" y="162" width="7" height="10"/><rect x="427" y="228" width="7" height="10"/><rect x="443" y="272" width="7" height="10"/><rect x="459" y="426" width="7" height="10"/><rect x="475" y="470" width="7" height="10"/><rect x="491" y="558" width="7" height="10"/></g><g fill="#ffd98a"><rect x="427" y="184" width="7" height="10"/><rect x="443" y="558" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="459" y="184" width="7" height="10"/><rect x="491" y="492" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="427" y="206" width="7" height="10"/><rect x="443" y="294" width="7" height="10"/><rect x="427" y="360" width="7" height="10"/><rect x="427" y="558" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="443" y="206" width="7" height="10"/><rect x="443" y="448" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="427" y="250" width="7" height="10"/><rect x="427" y="294" width="7" height="10"/><rect x="475" y="404" width="7" height="10"/><rect x="491" y="404" width="7" height="10"/><rect x="427" y="426" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="475" y="250" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="443" y="514" width="7" height="10"/><rect x="427" y="580" width="7" height="10"/></g><rect x="540" y="130" width="110" height="490" fill="#0d0a16"/><rect x="573" y="120" width="44" height="10" fill="#0d0a16"/><line x1="595" y1="120" x2="595" y2="104" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".5"><rect x="547" y="144" width="7" height="10"/><rect x="579" y="430" width="7" height="10"/></g><g fill="#ff7a45"><rect x="579" y="144" width="7" height="10"/><rect x="547" y="254" width="7" height="10"/><rect x="627" y="386" width="7" height="10"/></g><g fill="#ffd98a"><rect x="611" y="166" width="7" height="10"/><rect x="579" y="408" width="7" height="10"/><rect x="611" y="430" width="7" height="10"/><rect x="627" y="496" width="7" height="10"/><rect x="611" y="562" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="563" y="188" width="7" height="10"/><rect x="611" y="188" width="7" height="10"/><rect x="563" y="210" width="7" height="10"/><rect x="627" y="518" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="579" y="188" width="7" height="10"/><rect x="595" y="254" width="7" height="10"/><rect x="547" y="364" width="7" height="10"/></g><g fill="#5be3ff"><rect x="595" y="210" width="7" height="10"/><rect x="579" y="232" width="7" height="10"/><rect x="627" y="276" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="611" y="232" width="7" height="10"/><rect x="579" y="298" width="7" height="10"/><rect x="627" y="540" width="7" height="10"/><rect x="547" y="562" width="7" height="10"/></g><g fill="#c9a227"><rect x="579" y="254" width="7" height="10"/><rect x="595" y="386" width="7" height="10"/><rect x="611" y="518" width="7" height="10"/><rect x="595" y="584" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="627" y="254" width="7" height="10"/><rect x="563" y="364" width="7" height="10"/><rect x="627" y="430" width="7" height="10"/><rect x="579" y="562" width="7" height="10"/><rect x="595" y="562" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="563" y="298" width="7" height="10"/><rect x="563" y="408" width="7" height="10"/><rect x="595" y="452" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="563" y="320" width="7" height="10"/><rect x="627" y="364" width="7" height="10"/><rect x="627" y="452" width="7" height="10"/><rect x="611" y="474" width="7" height="10"/><rect x="547" y="496" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="547" y="342" width="7" height="10"/><rect x="547" y="386" width="7" height="10"/><rect x="563" y="386" width="7" height="10"/><rect x="595" y="408" width="7" height="10"/><rect x="611" y="408" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="579" y="342" width="7" height="10"/><rect x="563" y="540" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="547" y="474" width="7" height="10"/><rect x="611" y="584" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="579" y="518" width="7" height="10"/><rect x="579" y="584" width="7" height="10"/></g><rect x="680" y="80" width="100" height="540" fill="#0d0a16"/><rect x="710" y="70" width="40" height="10" fill="#0d0a16"/><line x1="730" y1="70" x2="730" y2="54" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d"><rect x="687" y="94" width="7" height="10"/><rect x="767" y="160" width="7" height="10"/><rect x="687" y="468" width="7" height="10"/><rect x="687" y="534" width="7" height="10"/></g><g fill="#ff7a45"><rect x="703" y="94" width="7" height="10"/><rect x="687" y="336" width="7" height="10"/><rect x="751" y="424" width="7" height="10"/><rect x="687" y="490" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="767" y="94" width="7" height="10"/><rect x="767" y="182" width="7" height="10"/><rect x="703" y="402" width="7" height="10"/><rect x="703" y="468" width="7" height="10"/><rect x="719" y="468" width="7" height="10"/><rect x="751" y="556" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="687" y="116" width="7" height="10"/><rect x="735" y="446" width="7" height="10"/><rect x="751" y="468" width="7" height="10"/><rect x="703" y="490" width="7" height="10"/><rect x="751" y="490" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="735" y="116" width="7" height="10"/><rect x="751" y="116" width="7" height="10"/><rect x="751" y="160" width="7" height="10"/><rect x="687" y="292" width="7" height="10"/><rect x="735" y="402" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="767" y="116" width="7" height="10"/><rect x="687" y="226" width="7" height="10"/><rect x="719" y="490" width="7" height="10"/><rect x="719" y="556" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="719" y="138" width="7" height="10"/><rect x="767" y="248" width="7" height="10"/><rect x="751" y="358" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="751" y="138" width="7" height="10"/><rect x="703" y="270" width="7" height="10"/><rect x="767" y="292" width="7" height="10"/><rect x="767" y="424" width="7" height="10"/></g><g fill="#c9a227"><rect x="703" y="160" width="7" height="10"/><rect x="751" y="226" width="7" height="10"/><rect x="687" y="424" width="7" height="10"/><rect x="735" y="578" width="7" height="10"/></g><g fill="#ffd98a"><rect x="687" y="182" width="7" height="10"/><rect x="719" y="292" width="7" height="10"/><rect x="703" y="534" width="7" height="10"/><rect x="719" y="578" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="719" y="182" width="7" height="10"/><rect x="735" y="380" width="7" height="10"/></g><g fill="#5be3ff"><rect x="735" y="182" width="7" height="10"/><rect x="719" y="248" width="7" height="10"/><rect x="687" y="270" width="7" height="10"/><rect x="719" y="314" width="7" height="10"/><rect x="767" y="380" width="7" height="10"/><rect x="719" y="402" width="7" height="10"/><rect x="719" y="424" width="7" height="10"/><rect x="767" y="446" width="7" height="10"/><rect x="703" y="512" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="751" y="182" width="7" height="10"/><rect x="719" y="270" width="7" height="10"/><rect x="703" y="314" width="7" height="10"/><rect x="751" y="380" width="7" height="10"/><rect x="751" y="534" width="7" height="10"/><rect x="767" y="556" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="735" y="248" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="751" y="248" width="7" height="10"/><rect x="751" y="314" width="7" height="10"/><rect x="703" y="336" width="7" height="10"/></g><rect x="800" y="150" width="120" height="470" fill="#0d0a16"/><rect x="836" y="140" width="48" height="10" fill="#0d0a16"/><line x1="860" y1="140" x2="860" y2="124" stroke="#0d0a16" stroke-width="3"/><g fill="#5be3ff" opacity=".5"><rect x="823" y="164" width="7" height="10"/><rect x="823" y="252" width="7" height="10"/><rect x="855" y="406" width="7" height="10"/><rect x="903" y="406" width="7" height="10"/><rect x="887" y="450" width="7" height="10"/><rect x="903" y="494" width="7" height="10"/><rect x="839" y="516" width="7" height="10"/><rect x="903" y="582" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="855" y="164" width="7" height="10"/><rect x="839" y="296" width="7" height="10"/></g><g fill="#c9a227"><rect x="871" y="164" width="7" height="10"/><rect x="823" y="318" width="7" height="10"/><rect x="903" y="362" width="7" height="10"/><rect x="807" y="450" width="7" height="10"/></g><g fill="#5be3ff"><rect x="823" y="186" width="7" height="10"/><rect x="839" y="406" width="7" height="10"/><rect x="871" y="450" width="7" height="10"/><rect x="855" y="472" width="7" height="10"/><rect x="887" y="538" width="7" height="10"/><rect x="839" y="582" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="839" y="186" width="7" height="10"/><rect x="855" y="318" width="7" height="10"/><rect x="871" y="318" width="7" height="10"/><rect x="839" y="340" width="7" height="10"/><rect x="887" y="494" width="7" height="10"/><rect x="807" y="560" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="871" y="186" width="7" height="10"/><rect x="807" y="208" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="839" y="208" width="7" height="10"/><rect x="887" y="252" width="7" height="10"/><rect x="903" y="384" width="7" height="10"/><rect x="903" y="428" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="855" y="208" width="7" height="10"/><rect x="887" y="230" width="7" height="10"/><rect x="855" y="274" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="871" y="274" width="7" height="10"/><rect x="855" y="428" width="7" height="10"/><rect x="871" y="428" width="7" height="10"/><rect x="807" y="494" width="7" height="10"/><rect x="903" y="516" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="807" y="296" width="7" height="10"/><rect x="823" y="406" width="7" height="10"/><rect x="807" y="516" width="7" height="10"/><rect x="855" y="538" width="7" height="10"/></g><g fill="#ffd98a"><rect x="871" y="296" width="7" height="10"/><rect x="903" y="296" width="7" height="10"/><rect x="839" y="384" width="7" height="10"/><rect x="903" y="472" width="7" height="10"/><rect x="807" y="538" width="7" height="10"/></g><g fill="#ff7a45"><rect x="807" y="384" width="7" height="10"/><rect x="871" y="560" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="855" y="450" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="839" y="472" width="7" height="10"/><rect x="887" y="516" width="7" height="10"/></g><rect x="950" y="50" width="95" height="570" fill="#0d0a16"/><rect x="978" y="40" width="38" height="10" fill="#0d0a16"/><line x1="998" y1="40" x2="998" y2="24" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".7"><rect x="957" y="64" width="7" height="10"/><rect x="973" y="372" width="7" height="10"/><rect x="1021" y="416" width="7" height="10"/><rect x="957" y="504" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="1005" y="64" width="7" height="10"/><rect x="957" y="174" width="7" height="10"/><rect x="1021" y="218" width="7" height="10"/><rect x="1005" y="262" width="7" height="10"/><rect x="973" y="328" width="7" height="10"/><rect x="1005" y="548" width="7" height="10"/><rect x="973" y="592" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1021" y="64" width="7" height="10"/><rect x="973" y="152" width="7" height="10"/><rect x="957" y="284" width="7" height="10"/><rect x="973" y="460" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="957" y="86" width="7" height="10"/><rect x="989" y="86" width="7" height="10"/><rect x="1021" y="196" width="7" height="10"/></g><g fill="#5be3ff"><rect x="973" y="108" width="7" height="10"/><rect x="1005" y="482" width="7" height="10"/><rect x="1021" y="592" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1005" y="108" width="7" height="10"/><rect x="957" y="152" width="7" height="10"/><rect x="957" y="306" width="7" height="10"/><rect x="957" y="548" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="989" y="130" width="7" height="10"/><rect x="973" y="174" width="7" height="10"/><rect x="973" y="196" width="7" height="10"/><rect x="989" y="196" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1005" y="152" width="7" height="10"/><rect x="957" y="240" width="7" height="10"/><rect x="1005" y="438" width="7" height="10"/></g><g fill="#ffd98a"><rect x="989" y="174" width="7" height="10"/><rect x="1005" y="284" width="7" height="10"/><rect x="1021" y="438" width="7" height="10"/><rect x="973" y="570" width="7" height="10"/><rect x="989" y="592" width="7" height="10"/></g><g fill="#c9a227"><rect x="1005" y="174" width="7" height="10"/><rect x="1005" y="240" width="7" height="10"/><rect x="989" y="262" width="7" height="10"/><rect x="1021" y="482" width="7" height="10"/><rect x="1005" y="504" width="7" height="10"/><rect x="1021" y="570" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="957" y="196" width="7" height="10"/><rect x="957" y="218" width="7" height="10"/><rect x="973" y="306" width="7" height="10"/><rect x="989" y="306" width="7" height="10"/><rect x="957" y="350" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="1005" y="196" width="7" height="10"/><rect x="989" y="350" width="7" height="10"/><rect x="1005" y="372" width="7" height="10"/><rect x="1021" y="372" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="1021" y="240" width="7" height="10"/><rect x="1005" y="306" width="7" height="10"/><rect x="989" y="394" width="7" height="10"/><rect x="1005" y="460" width="7" height="10"/></g><g fill="#ff7a45"><rect x="1021" y="284" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="973" y="548" width="7" height="10"/></g><rect x="1070" y="120" width="115" height="500" fill="#0d0a16"/><rect x="1104" y="110" width="46" height="10" fill="#0d0a16"/><line x1="1128" y1="110" x2="1128" y2="94" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".7"><rect x="1093" y="134" width="7" height="10"/><rect x="1077" y="288" width="7" height="10"/><rect x="1125" y="486" width="7" height="10"/><rect x="1157" y="552" width="7" height="10"/><rect x="1157" y="574" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="1125" y="134" width="7" height="10"/><rect x="1141" y="244" width="7" height="10"/><rect x="1077" y="266" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="1109" y="156" width="7" height="10"/><rect x="1125" y="222" width="7" height="10"/><rect x="1157" y="222" width="7" height="10"/><rect x="1125" y="420" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="1157" y="156" width="7" height="10"/><rect x="1157" y="376" width="7" height="10"/><rect x="1125" y="464" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1077" y="178" width="7" height="10"/><rect x="1157" y="244" width="7" height="10"/><rect x="1093" y="398" width="7" height="10"/><rect x="1157" y="464" width="7" height="10"/><rect x="1077" y="486" width="7" height="10"/></g><g fill="#ffd98a"><rect x="1093" y="178" width="7" height="10"/><rect x="1125" y="178" width="7" height="10"/><rect x="1077" y="244" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="1093" y="200" width="7" height="10"/><rect x="1093" y="464" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="1093" y="244" width="7" height="10"/><rect x="1109" y="464" width="7" height="10"/><rect x="1141" y="464" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1141" y="266" width="7" height="10"/><rect x="1077" y="376" width="7" height="10"/><rect x="1141" y="442" width="7" height="10"/><rect x="1141" y="530" width="7" height="10"/><rect x="1093" y="596" width="7" height="10"/><rect x="1109" y="596" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="1077" y="310" width="7" height="10"/><rect x="1109" y="332" width="7" height="10"/><rect x="1157" y="354" width="7" height="10"/><rect x="1109" y="376" width="7" height="10"/><rect x="1077" y="398" width="7" height="10"/><rect x="1109" y="398" width="7" height="10"/><rect x="1157" y="398" width="7" height="10"/><rect x="1077" y="530" width="7" height="10"/></g><g fill="#ff7a45"><rect x="1077" y="332" width="7" height="10"/><rect x="1125" y="508" width="7" height="10"/><rect x="1093" y="574" width="7" height="10"/></g><g fill="#5be3ff"><rect x="1141" y="508" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1109" y="530" width="7" height="10"/><rect x="1109" y="552" width="7" height="10"/></g><g fill="#c9a227"><rect x="1125" y="530" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="1077" y="552" width="7" height="10"/></g><rect x="1210" y="85" width="95" height="535" fill="#0d0a16"/><rect x="1238" y="75" width="38" height="10" fill="#0d0a16"/><line x1="1258" y1="75" x2="1258" y2="59" stroke="#0d0a16" stroke-width="3"/><g fill="#ff7a45" opacity=".7"><rect x="1217" y="99" width="7" height="10"/><rect x="1265" y="209" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="1217" y="121" width="7" height="10"/><rect x="1265" y="297" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="1233" y="121" width="7" height="10"/><rect x="1265" y="121" width="7" height="10"/><rect x="1249" y="319" width="7" height="10"/><rect x="1217" y="385" width="7" height="10"/><rect x="1249" y="385" width="7" height="10"/><rect x="1265" y="429" width="7" height="10"/><rect x="1233" y="473" width="7" height="10"/><rect x="1233" y="539" width="7" height="10"/><rect x="1217" y="561" width="7" height="10"/><rect x="1265" y="583" width="7" height="10"/></g><g fill="#ff7a45"><rect x="1281" y="121" width="7" height="10"/><rect x="1265" y="539" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1233" y="143" width="7" height="10"/><rect x="1281" y="165" width="7" height="10"/><rect x="1249" y="451" width="7" height="10"/><rect x="1249" y="517" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="1265" y="143" width="7" height="10"/><rect x="1265" y="253" width="7" height="10"/><rect x="1233" y="341" width="7" height="10"/></g><g fill="#c9a227"><rect x="1217" y="165" width="7" height="10"/><rect x="1249" y="165" width="7" height="10"/><rect x="1281" y="187" width="7" height="10"/><rect x="1265" y="473" width="7" height="10"/><rect x="1233" y="517" width="7" height="10"/><rect x="1249" y="561" width="7" height="10"/></g><g fill="#5be3ff"><rect x="1233" y="209" width="7" height="10"/><rect x="1265" y="275" width="7" height="10"/><rect x="1249" y="495" width="7" height="10"/><rect x="1265" y="561" width="7" height="10"/><rect x="1281" y="561" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1217" y="231" width="7" height="10"/><rect x="1217" y="517" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1249" y="231" width="7" height="10"/><rect x="1217" y="275" width="7" height="10"/><rect x="1265" y="407" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="1217" y="253" width="7" height="10"/><rect x="1233" y="319" width="7" height="10"/><rect x="1249" y="429" width="7" height="10"/><rect x="1281" y="451" width="7" height="10"/><rect x="1217" y="539" width="7" height="10"/><rect x="1233" y="561" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="1281" y="253" width="7" height="10"/><rect x="1217" y="363" width="7" height="10"/><rect x="1249" y="473" width="7" height="10"/><rect x="1281" y="495" width="7" height="10"/></g><g fill="#ffd98a"><rect x="1249" y="341" width="7" height="10"/><rect x="1265" y="385" width="7" height="10"/><rect x="1281" y="583" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="1265" y="341" width="7" height="10"/></g><rect x="1330" y="140" width="105" height="480" fill="#0d0a16"/><rect x="1362" y="130" width="42" height="10" fill="#0d0a16"/><line x1="1382" y1="130" x2="1382" y2="114" stroke="#0d0a16" stroke-width="3"/><g fill="#ff7a45"><rect x="1337" y="154" width="7" height="10"/><rect x="1353" y="198" width="7" height="10"/><rect x="1417" y="242" width="7" height="10"/><rect x="1337" y="264" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="1417" y="154" width="7" height="10"/><rect x="1385" y="198" width="7" height="10"/><rect x="1369" y="528" width="7" height="10"/><rect x="1401" y="550" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="1337" y="176" width="7" height="10"/><rect x="1385" y="220" width="7" height="10"/><rect x="1337" y="352" width="7" height="10"/><rect x="1417" y="462" width="7" height="10"/><rect x="1401" y="506" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1353" y="176" width="7" height="10"/><rect x="1401" y="176" width="7" height="10"/><rect x="1401" y="286" width="7" height="10"/><rect x="1353" y="506" width="7" height="10"/><rect x="1337" y="550" width="7" height="10"/></g><g fill="#ffd98a"><rect x="1369" y="176" width="7" height="10"/><rect x="1369" y="220" width="7" height="10"/><rect x="1401" y="308" width="7" height="10"/></g><g fill="#c9a227"><rect x="1337" y="198" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="1417" y="198" width="7" height="10"/><rect x="1337" y="242" width="7" height="10"/><rect x="1385" y="264" width="7" height="10"/><rect x="1417" y="286" width="7" height="10"/><rect x="1385" y="484" width="7" height="10"/><rect x="1337" y="572" width="7" height="10"/></g><g fill="#5be3ff"><rect x="1369" y="242" width="7" height="10"/><rect x="1369" y="308" width="7" height="10"/><rect x="1337" y="374" width="7" height="10"/><rect x="1337" y="418" width="7" height="10"/><rect x="1417" y="484" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="1353" y="264" width="7" height="10"/><rect x="1337" y="286" width="7" height="10"/><rect x="1385" y="396" width="7" height="10"/><rect x="1417" y="572" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1353" y="286" width="7" height="10"/><rect x="1337" y="528" width="7" height="10"/><rect x="1417" y="594" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1369" y="286" width="7" height="10"/><rect x="1385" y="352" width="7" height="10"/><rect x="1353" y="440" width="7" height="10"/><rect x="1401" y="462" width="7" height="10"/><rect x="1401" y="484" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="1385" y="308" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="1369" y="352" width="7" height="10"/><rect x="1337" y="462" width="7" height="10"/><rect x="1401" y="572" width="7" height="10"/><rect x="1369" y="594" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="1353" y="418" width="7" height="10"/></g><text x="720" y="180" class="neon-gold big-neon" text-anchor="middle">重庆</text><text x="720" y="208" class="neon-sub" text-anchor="middle">CHONGQING · 山城</text><text x="58" y="180" class="neon-red" style="fill:#ff4d5e">火</text><text x="58" y="214" class="neon-red" style="fill:#ff4d5e">锅</text><text x="310" y="230" class="neon-cyan" style="fill:#5be3ff">串</text><text x="310" y="260" class="neon-cyan" style="fill:#5be3ff">串</text><text x="310" y="290" class="neon-cyan" style="fill:#5be3ff">香</text><text x="585" y="200" class="neon-gold" style="fill:#ffd166">面</text><text x="585" y="230" class="neon-gold" style="fill:#ffd166">馆</text><text x="843" y="215" class="neon-pink" style="fill:#ff7ad9">茶</text><text x="843" y="245" class="neon-pink" style="fill:#ff7ad9">馆</text><text x="1102" y="190" class="neon-green" style="fill:#7dffa8">江</text><text x="1102" y="220" class="neon-green" style="fill:#7dffa8">景</text><text x="1372" y="200" class="neon-orange" style="fill:#ff9e4d">宵</text><text x="1372" y="230" class="neon-orange" style="fill:#ff9e4d">夜</text><text x="200" y="120" class="neon-red h-sign">大排档</text><text x="1230" y="60" class="neon-cyan h-sign">轻轨</text><g class="rail"><line x1="0" y1="470" x2="1440" y2="470" stroke="#241a38" stroke-width="6"/><line x1="0" y1="466" x2="1440" y2="466" stroke="#3d2f5e" stroke-width="2"/></g><line x1="60" y1="470" x2="60" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="210" y1="470" x2="210" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="360" y1="470" x2="360" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="510" y1="470" x2="510" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="660" y1="470" x2="660" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="810" y1="470" x2="810" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="960" y1="470" x2="960" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="1110" y1="470" x2="1110" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="1260" y1="470" x2="1260" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="1410" y1="470" x2="1410" y2="620" stroke="#1a1330" stroke-width="7"/><g class="train"><rect width="150" height="34" rx="10" fill="#1c4d5e"/><rect x="6" y="438" width="138" height="14" rx="6" fill="#8fe8ff" opacity=".9"/><rect x="58" y="438" width="4" height="14" fill="#1c4d5e"/><circle cx="24" cy="470" r="4" fill="#0a0612"/><circle cx="120" cy="470" r="4" fill="#0a0612"/><rect width="150" height="34" rx="10" fill="none" stroke="#5be3ff" stroke-width="1.5" opacity=".8"/></g><rect width="1440" height="330" fill="url(#mist)"/></svg></div>
+<div class="grain"></div>
+<div id="diag"></div>
+<button id="health-fab" title="System check">🩺<span class="dot"></span></button>
+<div id="health-panel"></div>
+<div id="voice-toast">🔊 Click anywhere to hear your teacher speak</div>
+
+<div class="wrap">
+<nav>
+  <div class="logo"><div class="seal">语</div>语伴 <span style="color:var(--gold);font-size:.85rem;font-weight:400">Laoshi</span></div>
+  <div class="nav-links">
+    <a href="#home" class="active">首页</a>
+    <a href="#lesson">课程</a>
+    <a href="#chat">语音聊天</a>
+    <a href="#quiz">测验</a>
+    <a href="#me">Me</a>
+  </div>
+  <div class="progress-pill">
+    <svg class="progress-ring" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" id="ring-fg" cx="22" cy="22" r="18"/></svg>
+    <span class="lbl">课程进度 <b id="prog-txt">0%</b></span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="home">
+  <div>
+    <h1>你好，我是<span class="accent">语伴老师</span></h1>
+    <p class="sub">Your personal Mandarin voice teacher · Old HSK Level 5 · She speaks to you and listens to you</p>
+    <div class="badges">
+      <span class="badge">🎙️ 语音对话</span>
+      <span class="badge">📊 幻灯片课程</span>
+      <span class="badge">🃏 互动测验</span>
+      <span class="badge">🔊 真人发音</span>
+    </div>
+    <div class="cta-row">
+      <button class="btn btn-red" id="enable-voice">🔊 Step 1: Enable Voice</button>
+      <a href="#chat" class="btn btn-red" style="background:linear-gradient(135deg,var(--jade),#235347);box-shadow:0 8px 28px rgba(47,109,94,.45)">🎙️ Step 2: Start Talking</a>
+      <a href="#lesson" class="btn btn-ghost">📖 Lesson 1: Hobbies</a>
+    </div>
+  </div>
+  <div class="scroll-hint">SCROLL · 往下滚动</div>
+</header>
+
+
+<!-- HOW TO -->
+<section id="howto" style="padding-top:0">
+  <div class="sec-head">
+    <div class="kicker">Quick Start</div>
+    <h2>How to talk with your teacher</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+    <div class="how-card"><div class="how-num">1</div><h4>Enable voice</h4><p>Click <b>“Enable Voice”</b> above. Your browser will ask for microphone permission — press <b>Allow</b>. The teacher will greet you out loud.</p></div>
+    <div class="how-card"><div class="how-num">2</div><h4>Press the mic</h4><p>In the chat, tap the <b>red microphone</b> and speak Mandarin. Release / tap again to stop — your sentence is sent automatically.</p></div>
+    <div class="how-card"><div class="how-num">3</div><h4>Listen &amp; reply</h4><p>The teacher <b>speaks her answer</b> with pinyin and English translation. Tap 🗣️ on any message to hear it again.</p></div>
+    <div class="how-card"><div class="how-num">4</div><h4>Voice not working?</h4><p>Use <b>Chrome or Edge</b>. If the mic is blocked: click the 🔒 icon in the address bar → Site settings → Microphone → Allow, then reload. If recognition is unavailable, you can always type — she still speaks back.</p></div>
+  </div>
+</section>
+
+<!-- LESSON -->
+<section id="lesson">
+  <div class="sec-head">
+    <div class="kicker">Lesson 01</div>
+    <h2>第一课：谈谈你的兴趣爱好</h2>
+    <p>Learning to talk about hobbies, personality, and goals — with 10 HSK 5 words and the grammar pattern 不但……而且……</p>
+  </div>
+  <div class="deck">
+    <div class="slide active" data-title="热身 Warm-up">
+      <span class="slide-tag">热身 · WARM UP</span>
+      <h3>开始之前<span class="en">Before we begin — answer out loud!</span></h3>
+      <p>好，我们开始！这一课我们学习怎么谈论<b>兴趣爱好</b>和<b>性格</b>。这些词在聊天的时候非常常用。</p>
+      <div class="warmup-q">
+        ❓ 你有什么爱好？你最喜欢做什么？
+        <span class="hint">Try answering in Chinese — even a short sentence like 我喜欢音乐。 counts! 点击单词卡片可以听发音。</span>
+      </div>
+    </div>
+    <div class="slide" data-title="生词 1–5">
+      <span class="slide-tag">生词 · VOCABULARY</span>
+      <h3>生词 1–5<span class="en">Click any card 🔊 to hear the pronunciation</span></h3>
+      <div class="vocab-grid">
+        <div class="vcard" data-say="兴趣"><button class="speak-mini">🔊</button><div class="hanzi">兴趣</div><div class="pinyin">xìngqù</div><div class="eng">interest, hobby</div></div>
+        <div class="vcard" data-say="爱好"><button class="speak-mini">🔊</button><div class="hanzi">爱好</div><div class="pinyin">àihào</div><div class="eng">hobby, passion</div></div>
+        <div class="vcard" data-say="特长"><button class="speak-mini">🔊</button><div class="hanzi">特长</div><div class="pinyin">tècháng</div><div class="eng">specialty, strength</div></div>
+        <div class="vcard" data-say="坚持"><button class="speak-mini">🔊</button><div class="hanzi">坚持</div><div class="pinyin">jiānchí</div><div class="eng">to persist, insist</div></div>
+        <div class="vcard" data-say="信心"><button class="speak-mini">🔊</button><div class="hanzi">信心</div><div class="pinyin">xìnxīn</div><div class="eng">confidence, faith</div></div>
+      </div>
+    </div>
+    <div class="slide" data-title="生词 6–10">
+      <span class="slide-tag">生词 · VOCABULARY</span>
+      <h3>生词 6–10<span class="en">Click any card 🔊 to hear the pronunciation</span></h3>
+      <div class="vocab-grid">
+        <div class="vcard" data-say="目标"><button class="speak-mini">🔊</button><div class="hanzi">目标</div><div class="pinyin">mùbiāo</div><div class="eng">goal, target</div></div>
+        <div class="vcard" data-say="幽默"><button class="speak-mini">🔊</button><div class="hanzi">幽默</div><div class="pinyin">yōumò</div><div class="eng">humorous</div></div>
+        <div class="vcard" data-say="开朗"><button class="speak-mini">🔊</button><div class="hanzi">开朗</div><div class="pinyin">kāilǎng</div><div class="eng">cheerful, outgoing</div></div>
+        <div class="vcard" data-say="内向"><button class="speak-mini">🔊</button><div class="hanzi">内向</div><div class="pinyin">nèixiàng</div><div class="eng">introverted</div></div>
+        <div class="vcard" data-say="进步"><button class="speak-mini">🔊</button><div class="hanzi">进步</div><div class="pinyin">jìnbù</div><div class="eng">progress, to improve</div></div>
+      </div>
+    </div>
+    <div class="slide" data-title="语法">
+      <span class="slide-tag">语法 · GRAMMAR</span>
+      <h3>不但……而且……<span class="en">Not only... but also...</span></h3>
+      <p>Use this pattern to connect two ideas — the second one is <b>even stronger</b> than the first.</p>
+      <div class="grammar-box">
+        <div class="formula">不但 + A ，而且 + B</div>
+        <div class="ex"><span><b>他不但聪明，而且幽默。</b></span><span class="tr">He's not only smart, but also humorous.</span></div>
+        <div class="ex"><span><b>我不但喜欢音乐，而且喜欢唱歌。</b></span><span class="tr">I don't just like music — I also like singing.</span></div>
+        <div class="ex"><span><b>这门课不但有意思，而且很有用。</b></span><span class="tr">This class is not only fun, but also very useful.</span></div>
+      </div>
+      <p style="margin-top:18px">⚠️ Note: with verbs, often use <b>不但不/没</b> for negatives: 他不但不生气，而且很高兴。</p>
+    </div>
+    <div class="slide" data-title="对话">
+      <span class="slide-tag">对话 · DIALOGUE</span>
+      <h3>对话：聊聊爱好<span class="en">Teacher 老师 &amp; Student 学生 — listen and repeat!</span></h3>
+      <div class="dialogue">
+        <div class="line t"><div class="who">师</div><div class="bubble">你有什么爱好？
+          <span class="py">Nǐ yǒu shénme àihào?</span><span class="en">What hobbies do you have?</span></div></div>
+        <div class="line s"><div class="who">生</div><div class="bubble">我特别喜欢打篮球，而且我坚持了很多年。
+          <span class="py">Wǒ tèbié xǐhuan dǎ lánqiú, érqiě wǒ jiānchíle hěn duō nián.</span><span class="en">I really like playing basketball, and I've kept it up for many years.</span></div></div>
+        <div class="line t"><div class="who">师</div><div class="bubble">哇，那你打得怎么样？
+          <span class="py">Wa, nà nǐ dǎ de zěnmeyàng?</span><span class="en">Wow, how well do you play?</span></div></div>
+        <div class="line s"><div class="who">生</div><div class="bubble">不但打得不错，而且我还是我们队的队长呢！</div>
+        </div>
+      </div>
+      <p style="margin-top:18px"><button class="nav-btn" style="color:var(--ink);border-color:#ddd;background:#fff" onclick="speak('你有什么爱好？我特别喜欢打篮球，而且我坚持了很多年。哇，那你打得怎么样？不但打得不错，而且我还是我们队的队长呢！')">🔊 播放整段对话</button></p>
+    </div>
+    <div class="slide" data-title="练习">
+      <span class="slide-tag">练习 · PRACTICE</span>
+      <h3>该你了！<span class="en">Your turn — try these before chatting</span></h3>
+      <div class="grammar-box">
+        <div class="ex"><span>1️⃣ 用「不但……而且……」说一个句子，谈谈你的爱好。</span></div>
+        <div class="ex"><span>2️⃣ 用三个生词描述一下你自己。（性格？目标？特长？）</span></div>
+        <div class="ex"><span>3️⃣ 完成句子：我学习汉语的目标是 ______ 。</span></div>
+      </div>
+      <p style="margin-top:20px">准备好了吗？👇 去下面跟老师语音聊天，把你的答案说出来！说的过程中我会帮你纠正。</p>
+      <p><a href="#chat" class="btn btn-red" style="margin-top:10px">🎙️ 去聊天</a></p>
+    </div>
+  </div>
+  <div class="deck-nav">
+    <button class="nav-btn" id="prev-btn">← 上一张</button>
+    <div class="dots" id="dots"></div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span class="slide-counter" id="slide-counter">1 / 6</span>
+      <button class="nav-btn" id="next-btn">下一张 →</button>
+    </div>
+  </div>
+</section>
+
+<!-- VOICE CHAT -->
+<section id="chat">
+  <div class="sec-head">
+    <div class="kicker">Voice Chat</div>
+    <h2>🎙️ 跟老师聊聊天</h2>
+    <p>Press the red mic and speak Mandarin (or type below). 老师会听你说中文、纠正你、并回答你的问题。点击 🗣️ 听任何一句的发音。</p>
+  </div>
+  <div class="card-strip">
+  <div class="lcard" onclick="document.getElementById('lesson').scrollIntoView({behavior:'smooth'})"><div class="ic">📖</div><b>幻灯片课</b><span>Lesson 1 · 兴趣爱好 · 6 slides</span></div>
+  <div class="lcard" onclick="startQuiz();document.getElementById('quiz').scrollIntoView({behavior:'smooth'})"><div class="ic">🃏</div><b>生词测验</b><span>10 questions · best score saved</span></div>
+  <div class="lcard" onclick="startReview();document.getElementById('quiz').scrollIntoView({behavior:'smooth'})"><div class="ic">🔁</div><b>到期复习</b><span><span id="due-count2">0</span> due · spaced repetition</span></div>
+  <div class="lcard" onclick="document.getElementById('me').scrollIntoView({behavior:'smooth'})"><div class="ic">🧠</div><b>我的档案</b><span>interests · strengths · AI brain</span></div>
+</div>
+<div class="chat-shell">
+    <div class="chat-stage">
+  <span class="t-online">● online</span>
+  <button id="test-voice" title="Test voice" style="background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:99px;padding:7px 13px;font-size:.78rem;cursor:pointer;font-family:inherit">🔊 Test</button>
+  <div class="stage-ring"></div>
+  <div class="avatar" id="avatar"><svg id="ava-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+<defs><radialGradient id="abg" cx="50%" cy="35%" r="80%"><stop offset="0%" stop-color="#331626"/><stop offset="100%" stop-color="#120a12"/></radialGradient></defs>
+<circle cx="60" cy="60" r="58" fill="url(#abg)"/>
+<circle cx="60" cy="60" r="56" fill="none" stroke="#c9a227" stroke-width="1.6" opacity=".7"/>
+<circle cx="60" cy="60" r="59" fill="none" stroke="#ff2d78" stroke-width="1" opacity=".45"/>
+<g id="av-body">
+<path d="M14,120 C14,88 38,78 60,78 C82,78 106,88 106,120 Z" fill="#6e1420"/>
+<path d="M46,82 L60,98 L74,82" fill="none" stroke="#e8c35a" stroke-width="3" stroke-linecap="round"/>
+<path d="M60,98 L60,120" stroke="#e8c35a" stroke-width="2" opacity=".8"/>
+<path d="M14,120 C14,100 26,90 38,84" fill="none" stroke="#ff2d78" stroke-width="2" opacity=".8"/>
+<path d="M106,120 C106,100 94,90 82,84" fill="none" stroke="#e8c35a" stroke-width="2" opacity=".7"/>
+<rect x="53" y="66" width="14" height="16" rx="5" fill="#eeb894"/>
+<circle cx="60" cy="15" r="11" fill="#17111a"/>
+<circle cx="60" cy="15" r="11" fill="none" stroke="#ff2d78" stroke-width="1.4" opacity=".8"/>
+<g id="av-head">
+<ellipse cx="60" cy="40" rx="25" ry="24" fill="#17111a"/>
+<ellipse cx="60" cy="52" rx="19" ry="22" fill="#f3cba6"/>
+<path d="M41,50 Q60,26 79,50 L79,42 Q60,22 41,42 Z" fill="#17111a"/>
+<path d="M41,50 Q44,58 47,55" fill="none" stroke="#17111a" stroke-width="4" stroke-linecap="round"/>
+<path d="M79,50 Q76,58 73,55" fill="none" stroke="#17111a" stroke-width="4" stroke-linecap="round"/>
+<ellipse class="blush" cx="45" cy="63" rx="4.5" ry="2.8" fill="#e2705a" opacity=".35"/>
+<ellipse class="blush" cx="75" cy="63" rx="4.5" ry="2.8" fill="#e2705a" opacity=".35"/>
+<path class="brow bl" d="M45,44 q5,-3 10,-1" fill="none" stroke="#17111a" stroke-width="2.4" stroke-linecap="round"/>
+<path class="brow br" d="M65,43 q5,-2 10,1" fill="none" stroke="#17111a" stroke-width="2.4" stroke-linecap="round"/>
+<g class="eye"><ellipse cx="49.5" cy="55" rx="5.6" ry="4.6" fill="#fff"/><g class="pupil"><circle cx="49.5" cy="55.4" r="2.6" fill="#3a2415"/><circle cx="50.3" cy="54.6" r=".9" fill="#fff"/></g><ellipse class="lid" cx="49.5" cy="54.6" rx="6" ry="5" fill="#f3cba6"/></g>
+<g class="eye"><ellipse cx="70.5" cy="55" rx="5.6" ry="4.6" fill="#fff"/><g class="pupil"><circle cx="70.5" cy="55.4" r="2.6" fill="#3a2415"/><circle cx="71.3" cy="54.6" r=".9" fill="#fff"/></g><ellipse class="lid" cx="70.5" cy="54.6" rx="6" ry="5" fill="#f3cba6"/></g>
+<rect x="42" y="49" width="15" height="12" rx="4.5" fill="rgba(201,162,39,0.10)" stroke="#e8c35a" stroke-width="2"/>
+<rect x="63" y="49" width="15" height="12" rx="4.5" fill="rgba(201,162,39,0.10)" stroke="#e8c35a" stroke-width="2"/>
+<line x1="57" y1="54" x2="63" y2="54" stroke="#e8c35a" stroke-width="2"/>
+<path d="M60,58 q-1.5,3 1,4.5" fill="none" stroke="#d9a07f" stroke-width="1.8" stroke-linecap="round"/>
+<path id="mouth-smile" d="M54,68 q6,5.5 12,0" fill="none" stroke="#b8443c" stroke-width="2.4" stroke-linecap="round"/>
+<g id="mouth-open" style="display:none"><ellipse cx="60" cy="69" rx="5.2" ry="4" fill="#7c2a24"/><ellipse cx="60" cy="70.8" rx="3" ry="1.8" fill="#d9706a"/></g>
+<path id="mouth-frown" style="display:none" d="M54,71.5 q6,-4.5 12,0" fill="none" stroke="#8f322c" stroke-width="2.6" stroke-linecap="round"/>
+<circle cx="38" cy="58" r="2.6" fill="#e8c35a"/><circle cx="82" cy="58" r="2.6" fill="#e8c35a"/>
+<path d="M83,40 C88,52 86,68 76,80" fill="none" stroke="#ff2d78" stroke-width="2.2" opacity=".85" stroke-linecap="round"/>
+<path d="M37,40 C32,52 34,68 44,80" fill="none" stroke="#e8c35a" stroke-width="2.2" opacity=".8" stroke-linecap="round"/>
+</g></g>
+</svg></div>
+  <div class="stage-name">王晓梅 <small>王老师 · Teacher Wang</small></div>
+  <div class="stage-pill mic-state" id="mic-state">🎤 Tap the mic below to speak</div>
+  <div class="stage-pill" id="t-status" style="margin-top:6px">准备就绪 · Ready</div>
+</div>
+<div id="chat-log"></div>
+    <div class="typing" id="typing" style="display:none"><i></i><i></i><i></i></div>
+    <div class="suggest-row" id="suggest-row" style="display:none">
+      <button class="suggest">老师好！</button>
+      <button class="suggest">你今天怎么样？</button>
+      <button class="suggest">考考我</button>
+      <button class="suggest">怎么用「不但」造句？</button>
+      <button class="suggest">跟我练习对话</button>
+      <button class="suggest">我有个问题</button>
+    </div>
+    <div id="live-hear"><span class="volbar"><i></i><i></i><i></i><i></i><i></i><i></i></span><span id="live-hear-text"></span><span id="live-caret">▌</span></div>
+<div class="chat-input">
+      <input id="chat-text" type="text" placeholder="Type in Chinese or English…" autocomplete="off">
+      <button class="send-btn" id="send-btn" title="发送">➤</button>
+    </div>
+    <button id="whatsay">💡 What to say?</button>
+    <div class="mic-row"><button class="mic-btn" id="mic-btn" title="tap to speak · 点我说话">🎤</button></div>
+  </div>
+  <p style="text-align:center;margin-top:14px;font-size:.78rem;color:var(--mist)">💡 Voice input needs Chrome or Edge with microphone permission. The teacher answers in spoken Mandarin with pinyin and English translation.</p>
+</section>
+
+<!-- ME -->
+<section id="me">
+  <div class="sec-head">
+    <div class="kicker">Your Learning Brain</div>
+    <h2>🧠 你的学习档案</h2>
+    <p>I remember your name, interests, strengths and mistakes — and bring each one back at the exact moment you're about to forget it.</p>
+  </div>
+  <div id="profile-panel" class="profile-grid"></div>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz">
+  <div class="sec-head">
+    <div class="kicker">Quiz</div>
+    <h2>🃏 生词测验</h2>
+    <p>Ten questions from this lesson. 看看你记住了多少！The teacher will cheer you on.</p>
+  </div>
+  <div style="text-align:center;margin-bottom:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+  <button class="nav-btn" onclick="startQuiz()">🃏 Lesson quiz</button>
+  <button class="nav-btn" id="review-btn" onclick="startReview()">🔁 Spaced review — <span id="due-count">0</span> due</button>
+</div>
+<div class="quiz-shell" id="quiz-shell"></div>
+</section>
+
+<footer>
+  <div class="seal-big">语</div>
+  语伴 Laoshi · 你的中文学习伙伴 · 旧 HSK 5<br>
+  <span id="best-score" style="color:var(--gold)"></span>
+</footer>
+</div>
+
+<script>
+/* =============== speech =============== */
+let zhVoice = null, networkVoiceOnly=false, speakToken=0, anyLocalVoice=null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices();
+  const zh = v=>/zh|cmn|Chinese|Mandarin|普通话|中文/i.test(v.lang+' '+v.name);
+  const local = vs.filter(v=>v.localService && zh(v));
+  const anyZh = vs.filter(zh);
+  // OFFLINE voices first: network (Google) voices silently fail when unreachable — e.g. in mainland China
+  zhVoice = local[0] || anyZh[0] || null;
+  networkVoiceOnly = anyZh.length>0 && local.length===0;
+  anyLocalVoice = vs.find(v=>v.localService) || null;   // any offline voice — the no-Google lifeline
+}
+pickVoice();
+speechSynthesis.onvoiceschanged = pickVoice;
+
+/* animated avatar controller */
+let jabber=null;
+function av(){ return document.getElementById('avatar'); }
+function setMood(m){ const h=av(); if(h) h.dataset.mood=m; }
+function getMood(){ const h=av(); return h ? h.dataset.mood : 'idle'; }
+function startJabber(){ stopJabber(); const mo=document.getElementById('mouth-open'); if(!mo) return;
+  jabber=setInterval(()=>{ mo.style.transform='scale('+(0.6+Math.random()*0.9).toFixed(2)+','+(0.25+Math.random()*1.8).toFixed(2)+')'; },90); }
+function stopJabber(){ if(jabber){ clearInterval(jabber); jabber=null; } const mo=document.getElementById('mouth-open'); if(mo) mo.style.transform='scale(1,1)'; }
+/* blinking — with occasional double-blink */
+(function blinkLoop(){ const go=()=>{ const L=document.querySelectorAll('#avatar .lid'); if(L.length){ L.forEach(l=>l.classList.add('blink')); setTimeout(()=>L.forEach(l=>l.classList.remove('blink')),150);
+    if(Math.random()<.16){ setTimeout(()=>{ L.forEach(l=>l.classList.add('blink')); setTimeout(()=>L.forEach(l=>l.classList.remove('blink')),140); },260); } }
+    setTimeout(go, 1500+Math.random()*3400); }; setTimeout(go,1500); })();
+/* eye glances — she looks around while idle or listening */
+(function lookLoop(){ const go=()=>{ const h=av(); if(h && (getMood()==='idle'||getMood()==='listening')){ const d=['l','r','u',''][Math.floor(Math.random()*4)]; h.dataset.look=d; if(d) setTimeout(()=>{ const hh=av(); if(hh) hh.dataset.look=''; }, 700+Math.random()*700); } setTimeout(go, 2300+Math.random()*3400); }; setTimeout(go,2600); })();
+/* micro-moods — curious looks while idle */
+(function microMoodLoop(){ const go=()=>{ if(getMood()==='idle'){ setMood('curious'); setTimeout(()=>{ if(getMood()==='curious') setMood('idle'); }, 1100+Math.random()*900); } setTimeout(go, 4800+Math.random()*5200); }; setTimeout(go,5200); })();
+let lastSpeakHeard=false, diagOn=false, diagLog=[];
+function copyDiag(){
+  const txt='语伴 Laoshi mic/voice report\n'+diagLog.join('\n');
+  const done=()=>{ const el=document.getElementById('diag-copy'); if(el) el.textContent='✓ copied'; };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,done); }
+  else{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); done(); }
+}
+function dlog(m){ diagLog.push(m); if(diagOn){ const d=document.getElementById('diag'); d.style.display='block'; d.innerHTML='<b>🔬 DIAGNOSTIC</b> <span id="diag-copy" style="cursor:pointer;color:var(--gold)" onclick="copyDiag()">📋 copy</span> <span style="float:right;cursor:pointer;color:#fff" onclick="this.parentNode.style.display=\'none\'">✕</span>\n'+diagLog.join('\n'); } }
+function speak(text, cb){
+  if(recording){ heldSpeak={text,cb}; dlog('⏸ teacher holds her reply while you speak'); return; }
+  dlog('speak() called, '+text.length+' chars, tts='+(('speechSynthesis' in window)?'yes':'NO')+', zhVoice='+(zhVoice?zhVoice.name:'none'));
+  if(!('speechSynthesis' in window)) return;
+  try{ speechSynthesis.cancel(); }catch(e){}
+  lastSpeakHeard=false;
+  pickVoice();                       // FRESH metadata every call — early loads report wrong localService flags
+  const netOnly = networkVoiceOnly;  // decide once, from fresh data
+  const chunks = (text.match(/[^。！？!?;；\n]+[。！？!?;；]*/g)||[text]).filter(x=>x.trim());
+  const av = document.getElementById('avatar');
+  let i=0, retried=false;
+  const tok=++speakToken;             // token guard: retry loop can never interleave with the main loop
+  function next(noVoice){
+    if(tok!==speakToken) return;
+    if(i>=chunks.length){ av.classList.remove('speaking'); stopJabber(); setMood('idle'); cb && cb(); return; }
+    const u = new SpeechSynthesisUtterance(chunks[i]);
+    u.lang='zh-CN'; u.rate=0.88; u.pitch=1.05; u.volume=1;
+    if(zhVoice && !netOnly) u.voice = zhVoice;               // offline zh first
+    else if(anyLocalVoice) u.voice = anyLocalVoice;          // no offline zh → force ANY offline voice (Microsoft) — never Google
+    dlog('  voice chosen: '+(u.voice?u.voice.name+' ('+(u.voice.localService?'local':'NETWORK')+')':'browser default ⚠'));
+    u.onstart = ()=>{ if(tok!==speakToken) return; lastSpeakHeard=true; av.classList.add('speaking'); setMood('speaking'); startJabber(); dlog('  utterance '+(i+1)+' ONSTART (voice='+(u.voice?u.voice.name:'default')+')'); };
+    u.onend  = ()=>{ if(tok!==speakToken) return; dlog('  utterance '+(i+1)+' onend'); i++; next(noVoice); };
+    u.onerror= (e)=>{ if(tok!==speakToken) return; dlog('  utterance '+(i+1)+' ERROR: '+e.error); i++; next(noVoice); };
+    speechSynthesis.speak(u);
+  }
+  // small delay after cancel() — cancel+speak in the same tick is silently dropped in some browsers
+  dlog('  attempt 1 with '+(netOnly?'DEFAULT (network zh voices skipped)':(zhVoice?zhVoice.name:'default voice'))+' in 60ms…');
+  setTimeout(()=>next(false), 60);
+  // if nothing started, retry once with the system default voice — old loop is dead via token, no cancel needed
+  setTimeout(()=>{
+    if(tok!==speakToken) return;
+    if(!lastSpeakHeard && !retried){
+      retried=true;
+      dlog('  attempt 1 produced NO onstart → retrying with DEFAULT voice');
+      i=0; setTimeout(()=>next(true), 60);
+    }
+  }, 1600);
+  // if the browser swallowed the sound (autoplay block), poke the engine awake
+  setTimeout(()=>{ if(!lastSpeakHeard){ try{ speechSynthesis.resume(); }catch(e){} } }, 1200);
+}
+window.speak = speak;
+
+/* =============== background =============== */
+const cv = document.getElementById('bg-canvas'), cx = cv.getContext('2d');
+let W,H; function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight;} rs(); addEventListener('resize',rs);
+// cyberpunk rain
+let drops=[];
+for(let i=0;i<130;i++) drops.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,l:10+Math.random()*18,v:6+Math.random()*9,o:.06+Math.random()*.22});
+(function loop(){
+  cx.clearRect(0,0,W,H);
+  cx.lineWidth=1;
+  for(const d of drops){
+    d.y+=d.v; d.x+=1.2;
+    if(d.y>H){d.y=-20;d.x=Math.random()*W;}
+    if(d.x>W) d.x=0;
+    cx.strokeStyle=`rgba(150,190,235,${d.o})`;
+    cx.beginPath();cx.moveTo(d.x,d.y);cx.lineTo(d.x-2.5,d.y-d.l);cx.stroke();
+  }
+  requestAnimationFrame(loop);
+})();
+
+/* =============== slides =============== */
+const slides = [...document.querySelectorAll('.slide')];
+const dotsBox = document.getElementById('dots');
+let cur = 0;
+const seen = new Set(JSON.parse(localStorage.getItem('seenSlides')||'[]'));
+slides.forEach((s,i)=>{
+  const d=document.createElement('div'); d.className='dot'+(i===0?' on':''); d.onclick=()=>go(i); dotsBox.appendChild(d);
+});
+function updProg(){
+  const p = Math.round(seen.size/slides.length*100);
+  document.getElementById('prog-txt').textContent = p+'%';
+  const ring=document.getElementById('ring-fg'), C=2*Math.PI*18;
+  ring.style.strokeDasharray=C; ring.style.strokeDashoffset=C*(1-p/100);
+  localStorage.setItem('seenSlides', JSON.stringify([...seen]));
+}
+function go(i){
+  slides[cur].classList.remove('active'); dotsBox.children[cur].classList.remove('on');
+  cur = Math.max(0, Math.min(slides.length-1, i));
+  slides[cur].classList.add('active'); dotsBox.children[cur].classList.add('on');
+  document.getElementById('slide-counter').textContent = (cur+1)+' / '+slides.length;
+  document.getElementById('prev-btn').disabled = cur===0;
+  document.getElementById('next-btn').disabled = cur===slides.length-1;
+  seen.add(cur); updProg();
+}
+document.getElementById('prev-btn').onclick=()=>go(cur-1);
+document.getElementById('next-btn').onclick=()=>go(cur+1);
+addEventListener('keydown',e=>{ if(e.key==='ArrowRight')go(cur+1); if(e.key==='ArrowLeft')go(cur-1); });
+seen.add(0); updProg();
+slides[cur].querySelectorAll('[data-say]').forEach(v=>v.onclick=()=>speak(v.dataset.say));
+
+/* =============== vocab data =============== */
+const VOCAB = [
+  {h:'兴趣',p:'xìngqù',e:'interest, hobby'},{h:'爱好',p:'àihào',e:'hobby, passion'},
+  {h:'特长',p:'tècháng',e:'specialty, strength'},{h:'坚持',p:'jiānchí',e:'to persist, insist'},
+  {h:'信心',p:'xìnxīn',e:'confidence, faith'},{h:'目标',p:'mùbiāo',e:'goal, target'},
+  {h:'幽默',p:'yōumò',e:'humorous'},{h:'开朗',p:'kāilǎng',e:'cheerful, outgoing'},
+  {h:'内向',p:'nèixiàng',e:'introverted'},{h:'进步',p:'jìnbù',e:'progress, to improve'}
+];
+
+/* =============== chat engine =============== */
+const log = document.getElementById('chat-log');
+const tStatus = document.getElementById('t-status');
+let studentName = localStorage.getItem('studentName') || null;
+
+const AVATAR_URL='data:image/svg+xml;utf8,'+encodeURIComponent(document.getElementById('ava-svg').outerHTML);
+function addMsg(role, main, py, tr, fix){
+  const d = document.createElement('div'); d.className='msg '+role;
+  if(role==='teacher'){
+    d.style.display='flex'; d.style.gap='10px'; d.style.alignItems='flex-start';
+    d.innerHTML = `<img class="msg-ava" src="${AVATAR_URL}"><div style="flex:1"><div class="meta">王老师 · Teacher Wang</div>${esc(main)}<button class="listen" title="听">🗣️</button><button class="tr-toggle" title="pinyin/translation on-off">文</button>` +
+      (py?`<span class="py">${esc(py)}</span>`:'') + (tr?`<span class="tr">${esc(tr)}</span>`:'') +
+      (fix?`<span class="fix">✏️ ${esc(fix)}</span>`:'');
+    d.querySelector('.listen').onclick=()=>speak(main);
+    const tt=d.querySelector('.tr-toggle'); if(tt) tt.onclick=()=>d.classList.toggle('tr-only');
+  } else if(role==='user'){
+    d.innerHTML = esc(main);
+  } else {
+    d.innerHTML = esc(main);
+  }
+  log.appendChild(d); log.scrollTop = log.scrollHeight;
+  return d;
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function teacherReply(text){
+  const typing = document.getElementById('typing');
+  typing.style.display='flex'; log.appendChild(typing); log.scrollTop=log.scrollHeight;
+  tStatus.textContent = '正在输入…';
+  setTimeout(async ()=>{
+    typing.style.display='none';
+    let r=null;
+    if(aiCfg && aiCfg.key && !pending){          // AI brain takes the wheel (mechanical SRS grading still handled by rule brain)
+      tStatus.textContent='王老师 is thinking…';
+      try{ r = await aiReply(text); dlog('🧠 AI reply ok'); }
+      catch(e){ dlog('🧠 AI failed: '+((e&&e.message)||e)+' → rule brain'); r=null; }
+    }
+    if(!r) r = brain(text);
+    convo.push({role:'user',content:text},{role:'assistant',content:r.zh});
+    if(convo.length>24) convo.splice(0,convo.length-24);
+    const extra = learnFromUser(text, r);
+    if(extra){ r = {zh:r.zh+' '+extra.zh, py:(r.py?r.py+' ':'')+(extra.py||''), en:(r.en?r.en+' ':'')+(extra.en||''), fix:r.fix}; }
+    if(!extra && !aiCfg && Math.random()<0.12){ r = {zh:r.zh+' '+pick(CHIT_CHAT), py:r.py, en:r.en, fix:r.fix}; }
+    addMsg('teacher', r.zh, r.py, r.en, r.fix);
+    speak(r.zh, ()=>{
+      const md=r.mood;
+      if(md && md!=='idle'){ setMood(md); setTimeout(()=>{ if(getMood()===md) setMood('idle'); },2600); }
+      else if(/👏|完全正确|太棒|说对了|Correct|Nice|progress/i.test(r.zh)){ setMood('happy'); setTimeout(()=>{ if(getMood()==='happy') setMood('idle'); },2600); }
+    });
+    refreshStatus();
+  }, 550 + Math.random()*600);
+}
+
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+
+/* 王晓梅's personality: warm, funny, loves hotpot, HATES "我不会" */
+const CHIT_CHAT=['对了，跟你说——我昨天去了解放碑，人好多！我很喜欢看重庆的夜晚。','我今天早上喝了绿茶，看了半小时书。你也要每天坚持哦！','咪咪（我的猫）今天打翻了我的茶杯……哈哈，算了，她不学习，你学习！','我跟你说，我最讨厌香菜。火锅里有香菜，我就不吃了！你呢？','周末我打算去打羽毛球。运动完再学习，效果最好！'];
+function personalityBrain(t){
+  profile.annoy = profile.annoy||0;
+  if(/对不起|抱歉|sorry/i.test(t)){ profile.annoy=0; saveProfile(); setMood('happy');
+    return {zh:'没关系！我知道学习不容易。你能道歉，说明你很有礼貌——这一点我很喜欢。我们继续吧！😊', py:'Méi guānxi!', en:'Apology accepted — good manners! Let\'s continue.'}; }
+  if(/你叫什么|你的名字/.test(t)){
+    return {zh:'我叫王晓梅，但是大家都叫我王老师。你呢？你告诉我名字，我就记住你！', py:'Wǒ jiào Wáng Xiǎoméi', en:'I\'m Wang Xiaomei — everyone calls me Teacher Wang. And you?'}; }
+  if(/你喜欢什么|你的爱好|你讨厌|你不喜欢|关于你|你呢/.test(t)){
+    return {zh:'我喜欢的东西不少！我最喜欢火锅——重庆火锅最棒。我也喜欢喝茶、打羽毛球，还有我家的小猫咪咪。讨厌的呢？香菜！还有……学生说"我不会"。你呢，你喜欢什么？我会记住的。', py:'Wǒ zuì xǐhuan huǒguō…', en:'I love hotpot (Chongqing style!), tea, badminton, my cat Mimi. I HATE cilantro… and students saying "I can\'t". What about you?'}; }
+  const shared=['火锅','茶','猫','羽毛球','烧饼','重庆'].find(k=>t.includes(k));
+  if(shared && Math.random()<0.85){
+    const lines={'火锅':'说到火锅，我昨天刚吃过！我点了毛肚和鸭血，太好吃了。不过记住——我不要香菜！','茶':'对了，我每天早上都喝茶，绿茶让我心情好。学习之前喝一杯，很好！','猫':'咪咪是我最喜欢的小猫，她每天早上坐在我书上，不让我备课！哈哈哈。','羽毛球':'我每周三打羽毛球！运动让大脑更好用——学习也更有效率。','烧饼':'哈哈，烧饼！我早餐经常吃。你是不是也饿了？','重庆':'重庆！那是我最喜欢的城市——火锅、夜景、轻轨……美极了！'};
+    profile.annoy=Math.max(0,profile.annoy-1); saveProfile();
+    return {zh:lines[shared]+' 好了，我们回来学习吧？', py:'', en:'(Her eyes light up — you two have something in common!)'};
+  }
+  if(/太难|我不会|学不会|放弃|不想学/.test(t)){
+    profile.annoy++; saveProfile();
+    if(profile.annoy>=2){ setMood('angry');
+      pending={type:'apology',right:'我可以说中文'};
+      return {zh:'哎呀，我生气了！😤 "我不会"这三个字，我不想再听到。你可以说得慢，可以说得简单，但是不能说放弃！来——跟我说：「我可以说中文」。说对了，我就消气。', py:'Wǒ kěyǐ shuō Zhōngwén.', en:'She\'s ANGRY! Repeat after her: 我可以说中文 (I can speak Chinese) — say it and she\'ll calm down.'}; }
+    return {zh:'别这么说！"不会"只是"现在不会"。你忘了你上次说得多好吗？来——哪一部分难？我们用中文，慢慢来。', py:'Bié zhème shuō!', en:'"Can\'t" just means "not yet". Which part is hard? In Chinese, slowly.'};
+  }
+  if(!/[一-鿿]/.test(t) && t.length>3 && /[a-zA-Z]/.test(t) && profile.annoy>=1){
+    profile.annoy++; saveProfile();
+    if(profile.annoy>=3){ setMood('angry');
+      return {zh:'喂！😠 英文又来了！你的键盘上有一个 🎤 麦克风——用它说中文，或者慢慢打中文。下次再说英文，我就给你留作业：复习二十个生词！', py:'', en:'She\'s angry about the English again. Use the keyboard mic or type Chinese!'}; }
+    return {zh:'又说英文啦 😕 你的中文比我刚开始学的时候好多了，真的。试试看，用中文说？说错没关系！', py:'', en:'Try it in Chinese — mistakes are totally fine!'};
+  }
+  return null;
+}
+function brain(raw){
+  const t = raw.trim();
+  const pc = checkPending(t); if(pc) return pc;
+  const pb = personalityBrain(t); if(pb) return pb;
+  // name learning: 我叫X / 我的名字是X
+  let m = t.match(/我叫(.{1,6})/) || t.match(/我的名字是(.{1,6})/);
+  if(m){
+    studentName = m[1].replace(/[。！!，,]/g,''); localStorage.setItem('studentName', studentName);
+    return {zh:`${studentName}，很高兴认识你！从今天开始我们就是朋友了。你想先聊聊天，还是先复习一下今天的生词？`,
+      py:`${studentName}, hěn gāoxìng rènshi nǐ!`, en:`Nice to meet you, ${studentName}! Do you want to chat first, or review today's words?`};
+  }
+  // quiz me
+  if(/考考我|测验|测试|quiz/i.test(t)){
+    return {zh:`好，我来考考你！请回答：「坚持」是什么意思？A）放弃 B）一直做，不放弃 C）休息。你选哪一个？`,
+      py:'Hǎo, wǒ lái kǎokao nǐ!', en:'OK, quiz time! What does 坚持 mean? A) give up B) keep doing it C) rest — which one?'};
+  }
+  if(/选B|选b|b）|B）|第二个/.test(t)){
+    return {zh:`完全正确！太棒了！坚持就是「一直做，不放弃」。比如说：我坚持每天学习汉语。你真聪明！我们一会儿在测验里再好好考考你。`,
+      py:'Wánquán zhèngquè!', en:'Exactly right! 坚持 means to keep doing something without giving up. Smart! Let\'s do the full quiz later.'};
+  }
+  if(/选A|选C|选a|选c|第一个|第三个/.test(t)){
+    return {zh:`差一点！正确答案是 B。坚持的意思是「一直做，不放弃」。别灰心，多练习就会进步的。`,
+      py:'Chà yìdiǎn!', en:'Close! The answer is B. 坚持 = to persist. Don\'t worry — practice makes progress!'};
+  }
+  // grammar question
+  if(/不但|造句|语法/.test(t)){
+    return {zh:`好问题！「不但……而且……」的意思是 not only... but also... 比如：我不但喜欢音乐，而且喜欢唱歌。现在轮到你：用这个句型说一个关于你的句子，试试看！`,
+      py:'「Búdàn... érqiě...」', en:'Not only... but also... Example: I don\'t just like music, I also like singing. Your turn!'};
+  }
+  // practice dialogue
+  if(/练习|对话|跟我练/.test(t)){
+    return {zh:`太好了！我们练习这个对话。我先说：你有什么爱好？你回答的时候，试着用上「不但……而且……」。准备好了就开始！`,
+      py:'Wǒmen liànxí zhège duìhuà.', en:'Let\'s practice! I say: What are your hobbies? Answer using 不但……而且……. Go ahead!'};
+  }
+  // greetings
+  if(/你好|老师好|您好|嗨|hello|hi/i.test(t)){
+    return {zh:`你好${studentName?'，'+studentName:''}！欢迎回来。今天你想聊什么？你的爱好？你的目标？还是最近的趣事？`,
+      py:'Nǐ hǎo!', en:`Hello${studentName?' '+studentName:''}! What would you like to talk about today — hobbies, goals, or something fun?`};
+  }
+  if(/怎么样|好吗|最近|忙什么/.test(t)){
+    return {zh:`我很好，谢谢！作为老师，我每天最开心的事就是跟学生聊天。你呢？你最近在忙什么？`,
+      py:'Wǒ hěn hǎo, xièxie!', en:'I\'m great, thanks! As a teacher, chatting with students is the best part of my day. What about you — what have you been up to?'};
+  }
+  if(/谢谢|感谢|thx|thank/i.test(t)){
+    return {zh:`不客气！这是我的工作，也是我的快乐。有问题随时问我，说错了也没关系——错误是最好的老师！`,
+      py:'Bú kèqi!', en:'You\'re welcome! Mistakes are the best teachers, so never be afraid to speak.'};
+  }
+  if(/再见|拜拜|bye/i.test(t)){
+    return {zh:`再见${studentName?'，'+studentName:''}！今天学得真好，加油！记得去做下面的生词测验哦。明天见！`,
+      py:'Zàijiàn!', en:`Goodbye${studentName?' '+studentName:''}! Great work today — don\'t forget the quiz below. See you tomorrow!`};
+  }
+  // hobbies mentioned
+  if(/喜欢|爱|爱好|音乐|运动|篮球|足球|读书|电影|旅游|旅行|吃|美食|唱歌/.test(t)){
+    return {zh:`哇，真有意思！那你能不能多说一点？比如：你为什么会喜欢这个？你坚持了多长时间？试着说一个长句子，我给你纠正。`,
+      py:'Wa, zhēn yǒu yìsi!', en:'Wow, interesting! Can you say more? Why do you like it? How long have you done it? Try a longer sentence — I\'ll help you.'};
+  }
+  if(/为什么/.test(t)){
+    return {zh:`「为什么」就是 why。回答的时候可以说：因为……比如——你为什么学习汉语？因为我对中国文化很有兴趣。那你的答案是什么呢？`,
+      py:'「Wèishénme」= why', en:'Answer with 因为... (because...). Why do YOU study Chinese?'};
+  }
+  if(/问题|什么意思|意思/.test(t)){
+    return {zh:`当然可以！哪个词或句子你不明白？你可以直接问我，比如：「坚持是什么意思？」我会用简单的中文和英文解释给你听。`,
+      py:'Nǎ ge cí nǐ bù míngbai?', en:'Which word don\'t you understand? Just ask me, like: What does 坚持 mean?'};
+  }
+  // any single vocab word lookup
+  const v = VOCAB.find(v=>t.includes(v.h));
+  if(v){
+    return {zh:`「${v.h}」读作 ${v.p}，意思是 "${v.e}"。例句：我有一个${v.h==='目标'?'大':''}${v.h}。现在请你用「${v.h}」自己造一个句子，好吗？`,
+      py:`${v.p}`, en:`"${v.e}". Now try making your own sentence with  ${v.h}!`};
+  }
+  // encouragement fallback with error note if sentence seems off
+  const isChinese = /[一-鿿]/.test(t);
+  const fix = isChinese ? '小提示：这句话可以再说得完整一点，试试加上「因为」「而且」或者时间词。' : null;
+  return pick([
+    {zh:`不错！我在听呢。你能再说得详细一点吗？用今天学过的词试试，比如「兴趣」「坚持」或者「不但……而且……」。`,
+     py:'Búcuò!', en:'Nice! Can you say more? Try using today\'s words like 兴趣, 坚持, or 不但……而且……. ', fix},
+    {zh:`嗯嗯，我明白了。那换个话题吧——你的学习目标是什么？用「我的目标是……」这个句型说说看。`,
+     py:'Wǒ míngbai le.', en:'I see! New topic — what is your study goal? Try: 我的目标是……', fix},
+    {zh:`很好，继续说！记住：说错了没关系，开口最重要。 mistakes are progress! 😊`,
+     py:'Hěn hǎo, jìxù shuō!', en:'Keep going! Speaking up matters most — mistakes are progress!', fix}
+  ]);
+}
+
+/* input wiring */
+function send(text){
+  const v = (text ?? document.getElementById('chat-text').value).trim();
+  if(!v) return;
+  addMsg('user', v);
+  document.getElementById('chat-text').value='';
+  profile.xp+=2; saveProfile();
+  teacherReply(v);
+}
+document.getElementById('send-btn').onclick=()=>send();
+document.getElementById('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+document.querySelectorAll('.suggest').forEach(b=>b.onclick=()=>send(b.textContent));
+
+/* speech recognition */
+const micBtn = document.getElementById('mic-btn');
+const micState = document.getElementById('mic-state');
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false;
+if(SR){
+  rec = new SR(); rec.lang='zh-CN'; rec.interimResults=true; rec.maxAlternatives=1;
+  let finalT='';
+  rec._reset=()=>{ finalT=''; };
+  rec.onstart = ()=>{ dlog('🎙 rec.onstart — engine listening'); };
+  rec.onsoundstart = ()=>{ dlog('🎙 onsoundstart — MIC HEARS AUDIO ✓ (if no text follows → Google/network blocker, not your mic)'); };
+  rec.onsoundend   = ()=>{ dlog('🎙 onsoundend'); };
+  rec.onresult = e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) finalT += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    document.getElementById('chat-text').value = finalT + interim;
+    hearShow(finalT + interim, finalT ? 'final' : '');
+    if(interim) dlog('🎙 interim: "'+interim.slice(0,30)+'"');
+  };
+  let lastRecError=false;
+  rec.onend = ()=>{
+    recording=false; micBtn.classList.remove('recording');
+    micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Tap the mic to speak';
+    const v=document.getElementById('chat-text').value.trim();
+    stopMeter(); setMood('idle');
+    if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
+    else if(!lastRecError){ hearShow('🤷 heard nothing — tap mic & speak again','err'); }
+    hearHide(2600);
+    if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb), 350); dlog('🔊 teacher speaks her held reply'); }
+    lastRecError=false;
+    dlog('🎙 rec.onend');
+  };
+  rec.onerror = (e)=>{
+    recording=false; micBtn.classList.remove('recording');
+    lastRecError=true; stopMeter(); setMood('idle');
+    hearShow('⚠️ '+e.error+' — see pill / 🔬 diagnostic','err'); hearHide(4000);
+    dlog('🎙 rec.onerror → '+e.error);
+    const msgs={
+      'not-allowed':'🔒 Mic permission denied → tap ⋮/lock icon → Site settings → Microphone → Allow → reload',
+      'service-not-allowed':'🔒 Mic blocked by browser policy — allow microphone, then reload',
+      'network':'🌐 Google speech servers unreachable — voice input dead in this browser/region',
+      'audio-capture':'🎤 Mic busy or missing — close other apps using it',
+      'no-speech':'🤷 Heard nothing — try again, speak closer & clearer',
+      'language-not-supported':'🌐 zh-CN speech model unavailable from Google servers'
+    };
+    micState.textContent = msgs[e.error] || ('⚠️ '+e.error);
+    if(e.error==='language-not-supported' && !langRetried){
+      langRetried=true; dlog('🎙 retrying with lang=zh …');
+      try{ rec.lang='zh'; setTimeout(()=>{ recording=true; micBtn.classList.add('recording'); rec.start(); },150); }catch(_){}
+      return;
+    }
+    if(e.error==='network'||e.error==='service-not-allowed') micDead=true;
+    if(e.error==='network') showBanner('🌐 <b>Network error:</b> Chrome sends your voice to Google\'s servers — unreachable here, so no Android browser can do voice input. ✅ <b>Tap the text box and use your keyboard\'s 🎤</b> (iFlytek/Baidu dictation) — I\'ll receive it as text. On iPhone, Safari uses Apple\'s servers and works.');
+  };
+  rec.onnomatch = ()=>{ micState.textContent='🤷 没听清 — try again'; dlog('🎙 onnomatch'); };
+}
+function showBanner(msg){
+  let b=document.getElementById('sr-banner');
+  if(!b){
+    b=document.createElement('div'); b.id='sr-banner';
+    b.style.cssText='padding:12px 22px;background:#2a1210;color:#ffb3a0;font-size:.85rem;line-height:1.6;border-bottom:1px solid rgba(255,77,94,.35)';
+    b.innerHTML=msg+' <span style="float:right;cursor:pointer;color:#fff;padding:0 4px">✕</span>';
+    b.querySelector('span').onclick=()=>b.remove();
+    document.querySelector('.chat-shell').insertBefore(b, document.getElementById('chat-log'));
+  }
+}
+/* live hearing bar: raw mic volume + transcript visibility */
+let meterRAF=null, meterStream=null, meterCtx=null;
+function hearShow(t, mode){
+  const h=document.getElementById('live-hear'); if(!h) return;
+  h.style.display='flex'; h.className=mode||'';
+  document.getElementById('live-hear-text').textContent=t;
+}
+function hearHide(ms){ setTimeout(()=>{ const h=document.getElementById('live-hear'); if(h && h.className!=='') { /* keep errors a moment */ } h.style.display='none'; }, ms||2500); }
+function startMeter(stream){
+  try{
+    meterCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(meterCtx.state==='suspended') meterCtx.resume();
+    const src=meterCtx.createMediaStreamSource(stream);
+    const an=meterCtx.createAnalyser(); an.fftSize=512;
+    src.connect(an);
+    const data=new Uint8Array(an.frequencyBinCount);
+    const bars=document.querySelectorAll('#live-hear .volbar i');
+    const loop=()=>{
+      an.getByteTimeDomainData(data);
+      let sum=0; for(let i=0;i<data.length;i++){ const v=(data[i]-128)/128; sum+=v*v; }
+      const lv=Math.min(1, Math.sqrt(sum/data.length)*4.5);
+      bars.forEach((b,k)=>{ b.style.height=(8+Math.max(0, lv*46 - k*5))+'px'; });
+      meterRAF=requestAnimationFrame(loop);
+    };
+    loop();
+  }catch(e){}
+}
+function stopMeter(){
+  if(meterRAF) cancelAnimationFrame(meterRAF); meterRAF=null;
+  if(meterStream){ meterStream.getTracks().forEach(t=>t.stop()); meterStream=null; }
+  if(meterCtx){ meterCtx.close().catch(()=>{}); meterCtx=null; }
+}
+micBtn.onclick=()=>{
+  if(!rec){
+    micState.textContent='⚠️ No speech recognition here';
+    showBanner('🎤 <b>This browser has no speech recognition.</b> Tap the text box and use your <b>keyboard\'s 🎤 dictation</b> (iFlytek/Baidu) — I\'ll hear you that way. Built-in mic needs Chrome/Edge reaching Google.');
+    const inp=document.getElementById('chat-text'); inp.focus();
+    return;
+  }
+  if(recording){                                   // SECOND TAP = stop & deliver, always
+    dlog('🎙 manual stop — delivering what was heard');
+    micState.textContent='🎤 delivering…';
+    recording=false; recStarted=false;
+    micBtn.classList.remove('recording');
+    stopMeter(); setMood('idle');
+    try{ rec.stop(); }catch(e){ finishRec(); }      // onend fires → send; if stop throws, finish manually
+    return;
+  }
+  // FIRST TAP — claim the mic state IMMEDIATELY so rapid double-taps toggle instead of doubling
+  recording=true; recStarted=false;
+  if(rec._reset) rec._reset();
+  document.getElementById('chat-text').value='';
+  micState.textContent='🎙 requesting microphone…';
+  (async()=>{
+    try{
+      const st=await navigator.mediaDevices.getUserMedia({audio:true});
+      meterStream=st; startMeter(st);
+      hearShow('speak now… 请说中文','');
+      dlog('🎙 getUserMedia OK — mic alive, volume meter running');
+    }catch(err){
+      if(!recording) return;                        // canceled while the permission prompt was up
+      recording=false; micBtn.classList.remove('recording'); stopMeter();
+      micState.textContent = err && err.name==='NotAllowedError'
+        ? '🔒 Permission denied → lock icon by the URL → Site settings → Microphone → Allow → reload'
+        : '🎤 Mic busy/missing — close apps using it';
+      dlog('🎙 getUserMedia FAILED: '+((err&&err.name)||err));
+      return;
+    }
+    if(!recording){ stopMeter(); dlog('🎙 start canceled while awaiting mic'); return; }
+    micBtn.classList.add('recording');
+    try{ speechSynthesis.cancel(); }catch(e){}      // she yields the floor instantly
+    stopJabber(); setMood('listening');
+    document.getElementById('avatar').classList.remove('speaking');
+    micState.textContent='🔴 Listening… tap the mic again to stop & send · 请说中文';
+    addMsg('sys','🎤 我在听… tap the mic again to stop & send');
+    try{ rec.start(); recStarted=true;
+      setTimeout(()=>{ if(recording && recStarted){ dlog('🎙 auto-stop after 45s'); try{ rec.stop(); }catch(e){} } },45000);
+    }catch(e){ recording=false; recStarted=false; micBtn.classList.remove('recording'); micState.textContent='⚠️ '+e.message; }
+  })();
+};
+/* manual finish fallback if rec.stop() never answers */
+function finishRec(){
+  const v=document.getElementById('chat-text').value.trim();
+  stopMeter(); setMood('idle');
+  micState.textContent='🎤 Tap the mic to speak';
+  if(v){ hearShow('✓ heard: '+v,'final'); send(v); } else { hearShow('🤷 heard nothing — try again','err'); }
+  hearHide(2600);
+}
+
+
+
+/* =============== system health check =============== */
+function runHealthCheck(){
+  pickVoice();
+  const vs = ('speechSynthesis' in window) ? speechSynthesis.getVoitsSafe() : [];
+  const zhLocal = vs.filter(v=>v.localService && /zh|cmn|Chinese|Mandarin|普通话|中文/i.test(v.lang+' '+v.name));
+  const zhAny = vs.filter(v=>/zh|cmn|Chinese|Mandarin|普通话|中文/i.test(v.lang+' '+v.name));
+  const SR = !!(window.SpeechRecognition||window.webkitSpeechRecognition);
+  let storeOK=true; try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t'); }catch(e){ storeOK=false; }
+  const rows=[
+    {n:'语音合成 TTS', ok:'speechSynthesis' in window, d:'speechSynthesis' in window?'available':'MISSING — no browser voice'},
+    {n:'中文声音 zh voices', ok:zhLocal.length>0, warn:zhAny.length>0, d: zhLocal.length? `${zhLocal.length} offline ✓ (${zhLocal[0].name.slice(0,22)})` : (zhAny.length? `${zhAny.length} NETWORK only ⚠` : 'none ✗')},
+    {n:'语音识别 Speech-to-text', ok:SR, d: SR?'available ✓':'not in this browser — use keyboard dictation'},
+    {n:'麦克风权限 Mic permission', ok:true, d:'checking…', cls:'micperm'},
+    {n:'网络 voices 风险', ok:zhLocal.length>0||zhAny.length===0, warn:zhAny.length>0&&zhLocal.length===0, d: (zhAny.length>0&&zhLocal.length===0)?'Google servers needed — may be silent':'—'},
+    {n:'存储 Memory', ok:storeOK, d:storeOK?'localStorage ✓':'BLOCKED'},
+    {n:'运行方式 Context', ok:location.protocol==='https:'||location.protocol==='http:', warn:location.protocol==='file:', d:(location.protocol==='blob:'||location.protocol==='about:'||location.protocol==='data:')?'SANDBOXED PREVIEW ⚠':(location.protocol==='https:'?'https ✓ (app-ready)':(location.protocol==='file:'?'local file ⚠ (serve https for mic)':location.protocol))},
+    {n:'屏幕 Screen', ok:innerWidth>=360, d:`${innerWidth}×${innerHeight} ${innerWidth<700?'· mobile':'· desktop'}`},
+    {n:'离线缓存 Offline', ok:'serviceWorker' in navigator, d:'serviceWorker' in navigator?'sw.js supported ✓':'not available here'}
+  ];
+  const bad = rows.filter(r=>r.ok===false).length, warns = rows.filter(r=>r.warn).length;
+  const hp=document.getElementById('health-panel');
+  const hints=[];
+  if(zhLocal.length===0) hints.push('🇨🇳 No-Google option 1: use <b>Edge</b> + Microsoft Xiaoxiao — Edge settings → Accessibility → Narrator → add Chinese natural voice (downloads once, then works offline, zero Google). Option 2: in Chrome she will now use Microsoft voices (English accent but works WITHOUT VPN). Mic without Google: press <b>Win+H</b> (Windows voice typing, Microsoft engine) in the text box — or on the phone use the keyboard 🎤 (iFlytek/Sogou/Baidu).');
+  if(zhLocal.length===0 && zhAny.length===0) hints.push('🔧 No Chinese voices → <b>Settings → Additional settings → Accessibility → Text-to-speech output → Preferred engine</b> → pick "XiaoAi speech engine" (小爱). If it\'s not listed: install "iFlytek" (讯飞语记) from GetApps (app store), then choose its engine in the same menu. Reopen this page after. · 设置→更多设置→无障碍→文字转语音输出');
+  else if(zhAny.length>0 && zhLocal.length===0) hints.push('🔧 Only NETWORK voices → download an offline Chinese voice, or switch to the XiaoAi / iFlytek engine.');
+  if(location.protocol==='blob:'||location.protocol==='about:'||location.protocol==='data:') hints.push('🔧 You are inside a PREVIEW window (sandbox) — browsers block microphone, sound and offline cache here. This is NOT how the app really behaves. DOWNLOAD the html file and open it directly in Chrome/Edge (or host the zip and use the https link on your phone).');
+  if(location.protocol==='file:') hints.push('🔧 file:// works for most features on desktop, but the mic needs https. Upload the zip to a static host (Gitee Pages / Tencent COS / Aliyun OSS) and open the https link for full voice input.');
+  if(location.protocol!=='https:' && location.protocol!=='http:') hints.push('🔧 Not https → the microphone is disabled when the page is opened from a file (content:/file:). Upload the zip to a static host (Gitee Pages / Tencent COS / Aliyun OSS), open the https link on your phone, then "Install app". · 上传后用 https 打开');
+  hp.innerHTML='<h4>🩺 System Check 系统检查<span id="health-close">✕</span></h4>'+
+    rows.map(r=>`<div class="hrow ${r.ok?'ok':(r.warn?'warn':'bad')} ${r.cls||''}"><span>${r.n}</span><b>${r.d}</b></div>`).join('')+
+    hints.map(h=>`<div style="padding:8px 0;color:#ffb3a0;font-size:.74rem;line-height:1.7;border-bottom:1px solid rgba(255,255,255,.05)">${h}</div>`).join('')+
+    `<div style="margin-top:10px;color:var(--mist);font-size:.72rem">${bad?`⚠️ ${bad} problem(s) — see red rows`:(warns?`⚠️ ${warns} warning(s) — yellow rows`:'✅ all clear — ready to learn!')}</div>`;
+  document.getElementById('health-fab').classList.toggle('bad', bad>0);
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:'microphone'}).then(pr=>{
+      const el=hp.querySelector('.hrow.micperm b'); if(!el) return;
+      const lbl={granted:'granted ✓',denied:'DENIED ✗ — fix in site settings',prompt:'will ask on first tap ✓'};
+      const paint=()=>{ el.textContent=lbl[pr.state]||pr.state; el.parentNode.className='hrow '+(pr.state==='granted'?'ok':(pr.state==='denied'?'bad':'warn'))+' micperm'; };
+      paint(); pr.onchange=paint;
+    }).catch(()=>{ const el=hp.querySelector('.hrow.micperm b'); if(el) el.textContent='n/a'; });
+  }
+  document.getElementById('health-close').onclick=()=>hp.style.display='none';
+}
+document.getElementById('health-fab').onclick=()=>{
+  const hp=document.getElementById('health-panel');
+  hp.style.display = hp.style.display==='block'?'none':'block';
+  runHealthCheck();
+};
+addEventListener('load',()=>setTimeout(runHealthCheck,1200));
+addEventListener('resize',()=>{ if(document.getElementById('health-panel').style.display==='block') runHealthCheck(); });
+
+/* =============== learner profile + spaced repetition =============== */
+const DAY=86400000, MIN=60000;
+let profile = JSON.parse(localStorage.getItem('yuban_profile_v1')||'null') || {
+  xp:0, chats:0, reviews:0, fixed:0, interests:{}, strengths:{}, mistakes:[], srs:{}, lastInterestAsk:0
+};
+let pending=null;
+function saveProfile(){ localStorage.setItem('yuban_profile_v1', JSON.stringify(profile)); updateDueBadge(); renderProfile(); refreshStatus();
+document.getElementById('whatsay').onclick=()=>{ const r=document.getElementById('suggest-row'); r.style.display=r.style.display==='flex'?'none':'flex'; };
+if(!rec) setTimeout(()=>showBanner('🎤 <b>This browser has no speech recognition</b> (Brave/Firefox), so I can\'t hear you here — type your Chinese and I\'ll speak my replies. For two-way voice, open this page in <b>Chrome or Edge</b>.'), 1500); }
+VOCAB.forEach(v=>{ if(!profile.srs[v.h]) profile.srs[v.h]={reps:0,ease:2.5,ivl:0,due:Date.now()+3*MIN,lapses:0}; });
+
+/* =============== AI brain (optional LLM) =============== */
+let aiCfg=null, convo=[];
+try{ aiCfg=JSON.parse(localStorage.getItem('yuban_ai')||'null'); }catch(e){}
+function buildSystemPrompt(){
+  const name=localStorage.getItem('studentName')||'未知';
+  const ints=Object.keys(profile.interests).join('、')||'无';
+  const str=Object.entries(profile.strengths).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]).join('、')||'无';
+  const mis=profile.mistakes.slice(0,5).map(m=>m.wrong+'→'+m.right).join('；')||'无';
+  const due=dueItems().map(d=>d.kind==='vocab'?d.h:(d.m.wrong+'→'+d.m.right)).slice(0,6).join('、')||'无';
+  return '你是王晓梅（王老师），一位活泼、温暖、严格有爱的中文老师，用标准普通话教一位外国学生。学生水平：旧HSK 5级。\n'
+   +'性格：喜欢火锅（讨厌香菜）、喝茶、打羽毛球、养猫"咪咪"。学生说"我不会/太难"时第一次鼓励，第二次生气并要求学生说「我可以说中文」才原谅；学生说英语时提醒用中文；多用学生的兴趣出题；学生用上新词或答对要热情表扬；偶尔自然提起你的爱好。\n'
+   +'教学要求：回复简短口语化，不超过3句；难度贴合HSK5；自然地使用学生档案信息；若"到期复习"有内容，挑1个自然穿插进对话（考考学生，不要直说"这是复习"）。\n'
+   +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'\n'
+   +'严格按四行输出：\nZH: （中文）\nPY: （拼音）\nEN: （英文翻译）\nMOOD: idle 或 happy 或 angry';
+}
+function parseAI(txt){
+  const g=k=>{ const m=txt.match(new RegExp('^'+k+':\\s*(.+)$','im')); return m?m[1].trim():''; };
+  const zh=g('ZH'); if(!zh) return null;
+  return { zh, py:g('PY'), en:g('EN'), mood:(g('MOOD')||'idle').toLowerCase() };
+}
+async function aiReply(userText){
+  const msgs=[{role:'system',content:buildSystemPrompt()}].concat(convo.slice(-10)).concat([{role:'user',content:userText}]);
+  const resp=await fetch(aiCfg.base.replace(/\/+$/,'')+'/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+aiCfg.key},
+    body:JSON.stringify({model:aiCfg.model,messages:msgs,temperature:0.7,max_tokens:260})});
+  if(!resp.ok) throw new Error('HTTP '+resp.status);
+  const data=await resp.json();
+  const out=parseAI((data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'');
+  if(!out) throw new Error('unexpected reply format');
+  return out;
+}
+function aiFillUI(){
+  if(!aiCfg) return;
+  const b=document.getElementById('ai-base'),k=document.getElementById('ai-key'),m=document.getElementById('ai-model'),u=document.getElementById('ai-url');
+  if(!b) return;
+  if(![...b.options].some(o=>o.value===aiCfg.base)) b.value='custom'; else b.value=aiCfg.base;
+  if(k) k.value=aiCfg.key; if(m) m.value=aiCfg.model;
+  if(u&&aiCfg.base&&![...b.options].some(o=>o.value===aiCfg.base)) u.value=aiCfg.base;
+  if(u&&aiCfg.base&&!/[...]/.test('')){}
+  if(u&&aiCfg.base&&![...b.options].some(o=>o.value===aiCfg.base)) u.value=aiCfg.base;
+}
+function aiStatus(t){ const el=document.getElementById('ai-status'); if(el) el.textContent=t; }
+function aiSaveFromUI(){
+  let base=document.getElementById('ai-base').value;
+  const key=document.getElementById('ai-key').value.trim();
+  const model=document.getElementById('ai-model').value.trim();
+  const url=document.getElementById('ai-url').value.trim();
+  if(base==='custom'){ if(!url){ aiStatus('enter the custom base URL'); return; } base=url; }
+  if(!key){ aiStatus('enter an API key first'); return; }
+  aiCfg={base,key,model:model||'deepseek-chat'};
+  localStorage.setItem('yuban_ai',JSON.stringify(aiCfg));
+  convo=[];
+  aiStatus('saved ✓ testing connection…'); aiTest(); renderProfile(); aiFillUI();
+}
+async function aiTest(){
+  if(!aiCfg){ aiStatus('no key saved yet'); return; }
+  aiStatus('testing connection…');
+  try{
+    const r=await fetch(aiCfg.base.replace(/\/+$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+aiCfg.key},body:JSON.stringify({model:aiCfg.model,messages:[{role:'user',content:'用一句中文打招呼'}],max_tokens:30})});
+    aiStatus(r.ok?'✅ connected — 王老师 now has a real AI brain':'❌ HTTP '+r.status+' — check key / model / balance');
+  }catch(e){ aiStatus('❌ cannot reach API ('+((e&&e.message)||e)+') — if "Failed to fetch", the provider may block browser calls (CORS); try DeepSeek or Moonshot'); }
+}
+function aiClear(){ aiCfg=null; localStorage.removeItem('yuban_ai'); convo=[]; aiStatus('removed — back to rule-based brain'); renderProfile(); }
+
+const LEVELS=[[0,'初学者 Beginner'],[40,'新学员 Novice'],[100,'进步学员 Improver'],[200,'熟练学员 Skilled'],[400,'汉语达人 Achiever'],[800,'大师 Master']];
+function levelInfo(){
+  let i=0; while(i<LEVELS.length-1 && profile.xp>=LEVELS[i+1][0]) i++;
+  const cur=LEVELS[i], nxt=LEVELS[Math.min(i+1,LEVELS.length-1)];
+  const pct = nxt[0]===cur[0]?100:Math.min(100,Math.round((profile.xp-cur[0])/(nxt[0]-cur[0])*100));
+  return {title:cur[1], pct, lv:i+1};
+}
+function refreshStatus(){ const li=levelInfo(); document.getElementById('t-status').textContent=`Lv.${li.lv} ${li.title.split(' ')[1]||''} · 在线`; }
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function gradeVocab(h,q){
+  const e=profile.srs[h]||(profile.srs[h]={reps:0,ease:2.5,ivl:0,due:0,lapses:0});
+  if(q<3){ e.reps=0; e.lapses++; e.ivl=10*MIN; e.due=Date.now()+10*MIN; }
+  else{
+    if(q===5) e.ease=Math.min(3.5,e.ease+0.15);
+    if(q===3) e.ease=Math.max(1.3,e.ease-0.2);
+    e.reps++;
+    e.ivl = e.reps===1?DAY : e.reps===2?3*DAY : Math.round(e.ivl*e.ease);
+    e.due = Date.now()+e.ivl;
+  }
+  saveProfile();
+}
+function gradeMistake(m,q){
+  if(q<3){ m.reps=0; m.lapses=(m.lapses||0)+1; m.due=Date.now()+10*MIN; }
+  else{
+    m.reps=(m.reps||0)+1;
+    if(m.reps>=3){ profile.fixed++; profile.mistakes=profile.mistakes.filter(x=>x!==m); }
+    m.due=Date.now()+[0,10*MIN,DAY,3*DAY,7*DAY,16*DAY][Math.min(m.reps||0,5)];
+  }
+  saveProfile();
+}
+function logMistake(wrong,right,note){
+  if(profile.mistakes.some(m=>m.wrong===wrong&&m.right===right)) return;
+  profile.mistakes.unshift({wrong,right,note:note||'',ts:Date.now(),due:Date.now()+10*MIN,reps:0});
+  if(profile.mistakes.length>30) profile.mistakes.length=30;
+  saveProfile();
+}
+function dueItems(){
+  const now=Date.now();
+  const vm=VOCAB.filter(v=>profile.srs[v.h]&&profile.srs[v.h].due<now).map(v=>({kind:'vocab',h:v.h,due:profile.srs[v.h].due}));
+  const mm=profile.mistakes.filter(m=>m.due<now).map(m=>({kind:'mistake',m,due:m.due}));
+  return [...vm,...mm].sort((a,b)=>a.due-b.due);
+}
+function updateDueBadge(){ const n=dueItems().length; const el=document.getElementById('due-count'); if(el) el.textContent=n; const el2=document.getElementById('due-count2'); if(el2) el2.textContent=n; }
+
+function makeReview(){
+  const due=dueItems();
+  if(!due.length) return null;
+  const it=due[0];
+  if(it.kind==='mistake'){
+    const m=it.m;
+    pending={type:'mistake',item:m,right:m.right};
+    return {zh:`对了，复习一下 📌 你以前说过「${m.wrong}」——正确的说法是什么？`,
+      py:'Duìle, fùxí yíxià', en:`Quick review: you once said "${m.wrong}". What's the correct way?`};
+  }
+  const v=VOCAB.find(x=>x.h===it.h);
+  const wrongs=shuffle(VOCAB.filter(x=>x.h!==v.h)).slice(0,2).map(x=>x.e);
+  const opts=shuffle([v.e,...wrongs]);
+  pending={type:'vocab',word:v.h,answer:v.e,opts};
+  return {zh:`顺便考考你 📌 「${v.h}」是什么意思？ A）${opts[0]}　B）${opts[1]}　C）${opts[2]}`,
+    py:'Shùnbiàn kǎokao nǐ', en:`Pop quiz — what does ${v.h} mean? A / B / C`};
+}
+function checkPending(t){
+  if(!pending) return null;
+  const p=pending; profile.reviews++;
+  if(p.type==='apology'){
+    const ok = /我可以说中文|我會說中文/.test(t) || (t.includes('中文') && t.includes('可以'));
+    pending=null;
+    if(ok){ profile.annoy=0; saveProfile(); setMood('happy');
+      return {zh:'……好吧，你说了，我就原谅你！😊 记住：你可以说中文。来，证明给我看——用「不但……而且……」造一个句子！',
+        py:'Wǒ yuánliàng nǐ le!', en:'Forgiven! Now prove it — make a sentence with 不但……而且…….'};
+    }
+    profile.annoy=(profile.annoy||0)+1; saveProfile(); setMood('angry');
+    return {zh:'不对！我说的是：「我可以说中文」。再来一次——看着我，大声一点，你可以的！',
+      py:'Wǒ kěyǐ shuō Zhōngwén!', en:'Once more, with feeling: 我可以说中文! (Wǒ kěyǐ shuō Zhōngwén)'};
+  }
+  if(p.type==='vocab'){
+    const letter=(t.match(/(?:^|[^a-zA-Z])([a-cA-C])(?![a-zA-Z])/)||[])[1];
+    let ok=t.includes(p.answer);
+    if(letter){ ok = p.opts[['a','b','c'].indexOf(letter.toLowerCase())]===p.answer; }
+    pending=null;
+    if(ok){ gradeVocab(p.word,5); profile.xp+=10;
+      return {zh:`完全正确！「${p.word}」= ${p.answer}。已存入长期记忆 ✅`,py:'Wánquán zhèngquè',en:`Correct! ${p.word} is now in your long-term memory.`};
+    }
+    gradeVocab(p.word,2);
+    return {zh:`差一点点！「${p.word}」的意思是 ${p.answer}。没关系，一会儿我们再复习一次。`,py:'Chà yìdiǎn diǎn',en:`Almost! ${p.word} means ${p.answer}. We'll revisit it soon.`};
+  }
+  const clean=t.replace(/[\s，。！？,.!?]/g,'');
+  const ok=clean.includes(p.right.replace(/[\s，。！？,.!?]/g,'').slice(0,14));
+  pending=null;
+  if(ok){ gradeMistake(p.item,4); profile.xp+=10;
+    return {zh:`说对了！👏 「${p.right}」——这个错误正式改正，记入你的进步。`,py:'Shuō duìle',en:`Correct! "${p.right}" — that mistake is officially fixed and logged.`};
+  }
+  gradeMistake(p.item,2);
+  return {zh:`再看一次：❌「${p.item.wrong}」　✅「${p.right}」。跟我读一遍：${p.right}。`,py:'Gēn wǒ dú yí biàn',en:`Once more: not "${p.item.wrong}" — "${p.right}". Read after me!`};
+}
+
+const INTEREST_MAP=[['篮球','运动'],['足球','运动'],['健身','运动'],['跑步','运动'],['游泳','运动'],['爬山','户外运动'],
+ ['音乐','音乐'],['唱歌','唱歌'],['吉他','音乐'],['钢琴','音乐'],['电影','电影'],['读书','阅读'],['小说','阅读'],
+ ['旅游','旅行'],['旅行','旅行'],['吃','美食'],['美食','美食'],['做饭','美食'],['菜','美食'],['咖啡','咖啡'],
+ ['茶','茶文化'],['游戏','游戏'],['工作','工作'],['猫','宠物'],['狗','宠物'],['摄影','摄影'],['摄影','摄影']];
+
+function learnFromUser(t){
+  profile.chats++;
+  const used=[];
+  for(const v of VOCAB){ if(t.includes(v.h)){ profile.strengths[v.h]=(profile.strengths[v.h]||0)+1; used.push(v.h); } }
+  let interest=null;
+  for(const[k,tag]of INTEREST_MAP){ if(t.includes(k)){ profile.interests[tag]=(profile.interests[tag]||0)+1; interest=tag; } }
+
+  // mistake detectors — immediate, concrete feedback
+  const notes=[];
+  if(!/[一-鿿]/.test(t) && t.length>3 && /[a-zA-Z]/.test(t)){
+    logMistake(t.slice(0,40),'试着用中文说 — try saying it in Chinese','lang');
+    notes.push({zh:'这句话是英文哦 — 试着用中文再说一遍，哪怕很简单。',py:'Shìzhe yòng Zhōngwén shuō yí biàn',en:'That was English — try saying it in Chinese, even a simple sentence.'});
+  }
+  if(/我是很/.test(t)){
+    logMistake('我是很好','我很好','grammar: 是+名词, no 是 before 很');
+    notes.push({zh:'小纠正：说「我很好」就可以，不用「是」。「是」后面接名词，形容词前面用「很」。',py:'Wǒ hěn hǎo — bú yòng shì',en:'Say 我很好, not 我是很好. 是 goes with nouns; 很 goes directly after the subject.'});
+  }
+  if(/[一-鿿][^一-鿿]{0,14}\b(is|are|was|were|very|good|the|and|like|my|love)\b/i.test(t)){
+    logMistake('中文句子混用英文','整句用中文说；不会的词问我什么意思','mixing');
+    notes.push({zh:'我注意到句子里有英文单词 — 练习时尽量整句中文，不会的词可以问我：「X 是什么意思？」',py:'',en:'I noticed English mixed in — try full-Chinese sentences; ask me any word you need.'});
+  }
+  saveProfile();
+  if(notes.length) return notes[0];
+
+  // spaced repetition woven into natural chat
+  if(!pending && Math.random()<0.4){
+    const r=makeReview();
+    if(r) return r;
+  }
+  // interests drive personalized prompts
+  if(interest && Date.now()-profile.lastInterestAsk>10*MIN && Math.random()<0.5){
+    profile.lastInterestAsk=Date.now(); saveProfile();
+    const v=pick(VOCAB);
+    return {zh:`对了，你喜欢${interest}！那用「${v.h}」造一个和${interest}有关的句子，怎么样？`,
+      py:'Duìle', en:`You like ${interest}! Try making a sentence about it using 「${v.h}」.`};
+  }
+  if(used.length && Math.random()<0.5){ profile.annoy=Math.max(0,(profile.annoy||0)-1);
+    return {zh:`👏 你自己用上了「${used[0]}」——这就是主动学习，很好！`,py:'Zhè jiùshì zhǔdòng xuéxí',en:`Nice — you used 「${used[0]}」 yourself. That's active learning!`};
+  }
+  return null;
+}
+
+function renderProfile(){
+  const el=document.getElementById('profile-panel'); if(!el) return;
+  const li=levelInfo();
+  const name=localStorage.getItem('studentName')||'新朋友 New friend';
+  const ints=Object.entries(profile.interests).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const str=Object.entries(profile.strengths).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxS=Math.max(1,...str.map(x=>x[1]));
+  const due=dueItems();
+  el.innerHTML=`
+   <div class="pcard" style="text-align:center">
+     <img src="${AVATAR_URL}" style="width:96px;height:96px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 22px rgba(255,45,120,.55)">
+     <h4 style="margin-top:12px">${esc(name)}</h4>
+     <div style="font-size:.85rem;color:var(--mist)">Lv.${li.lv} · ${li.title}</div>
+     <div class="xpbar" style="margin-top:10px"><i style="width:${li.pct}%"></i></div>
+     <div style="font-size:.72rem;color:var(--mist);margin-top:6px">${profile.xp} XP · ${li.pct}% to next level</div>
+     <div style="display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:.78rem;color:var(--mist);flex-wrap:wrap">
+       <span>💬 ${profile.chats}</span><span>🔁 ${profile.reviews} reviews</span><span>✅ ${profile.fixed} fixed</span>
+     </div>
+     <button onclick="if(confirm('Reset all learning data?')){localStorage.removeItem('yuban_profile_v1');localStorage.removeItem('studentName');location.reload()}" style="margin-top:16px;background:none;border:1px solid rgba(255,255,255,.2);color:var(--mist);border-radius:99px;padding:5px 14px;font-size:.72rem;cursor:pointer">Reset my data</button>
+   </div>
+   <div class="pcard"><h4>❤️ My interests</h4>
+     <p style="font-size:.72rem;color:var(--mist);margin:-8px 0 12px">Your teacher builds lessons &amp; prompts around these</p>
+     ${ints.length? ints.map(([k,c])=>`<span class="chip">${esc(k)} ×${c}</span>`).join('') : '<p style="font-size:.85rem;color:var(--mist);line-height:1.8">None yet — chat with your teacher about what you love, and I\'ll remember it.</p>'}
+   </div>
+   <div class="pcard"><h4>💪 My strengths</h4>
+     ${str.length? str.map(([k,c])=>`<div style="display:flex;justify-content:space-between;font-size:.85rem"><span>${esc(k)}</span><span style="color:var(--gold)">used ×${c}</span></div><div class="sbar"><i style="width:${Math.round(c/maxS*100)}%"></i></div>`).join('') : '<p style="font-size:.85rem;color:var(--mist)">Use lesson words in chat and they appear here.</p>'}
+   </div>
+   <div class="pcard"><h4>📌 Spaced repetition</h4>
+     <p style="font-size:.8rem;color:var(--mist);line-height:1.8">Due items resurface naturally in chat and flashcards, right before you'd forget them.</p>
+     <button class="nav-btn" style="margin-top:10px" onclick="startReview()">🔁 Review due now (${due.length})</button>
+     <div style="margin-top:14px">
+       ${profile.mistakes.slice(0,4).map(m=>`<div class="mist-row">❌ ${esc(m.wrong)}<br>✅ ${esc(m.right)}</div>`).join('') || '<div class="mist-row">No mistakes recorded — they will show up here for review.</div>'}
+     </div>
+   </div>` +'<div class="pcard"><h4>🧠 AI Brain <span style="float:right;font-size:.68rem;color:var(--mist)">'+(aiCfg&&aiCfg.key?'ON — real LLM':'OFF — rule-based')+'</span></h4>'
+  +'<p style="font-size:.76rem;color:var(--mist);line-height:1.7">Paste an API key and 王晓梅 gets a real AI brain — free-flowing conversation, still her personality, still your profile. Key stays on this device only. DeepSeek/Moonshot work in China; both cost a few cents per month at this usage.</p>'
+  +'<select id="ai-base" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;background:#fff;font-family:inherit;margin-top:8px;font-size:.8rem">'
+  +'<option value="https://api.deepseek.com/v1">DeepSeek — China-friendly, cheap</option>'
+  +'<option value="https://api.moonshot.cn/v1">Moonshot / Kimi — China</option>'
+  +'<option value="https://api.openai.com/v1">OpenAI — needs VPN in China</option>'
+  +'<option value="custom">Custom base URL…</option></select>'
+  +'<input id="ai-url" placeholder="custom base URL, e.g. https://api.deepseek.com/v1" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem;display:none">'
+  +'<input id="ai-key" type="password" placeholder="API key (sk-…)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<input id="ai-model" placeholder="model: deepseek-chat / moonshot-v1-8k / gpt-4o-mini" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="nav-btn" onclick="aiSaveFromUI()">💾 Save</button><button class="nav-btn" onclick="aiTest()">🔌 Test</button><button class="nav-btn" onclick="aiClear()" style="opacity:.7">Remove</button></div>'
+  +'<div id="ai-status" style="font-size:.74rem;margin-top:8px;color:var(--mist)">'+(aiCfg&&aiCfg.key?('configured: '+aiCfg.base+' · '+aiCfg.model):'')+'</div></div>' ;
+  aiFillUI();
+  const ub=document.getElementById("ai-base"); if(ub) ub.onchange=()=>{ document.getElementById("ai-url").style.display = ub.value==="custom"?"block":"none"; };
+
+}
+
+/* spaced-repetition flashcards */
+let revQueue=[], revCur=null;
+function startReview(){
+  document.getElementById('quiz').scrollIntoView({behavior:'smooth'});
+  revQueue=dueItems();
+  if(!revQueue.length){
+    qShell.innerHTML=`<div class="q-score-big" style="font-size:2.6rem;color:var(--jade)">全部完成！🎉</div><p style="color:#8a7f6a;margin-top:12px">Nothing due — your memory is fresh. Go chat to earn XP!</p>`;
+    speak('全部完成，真棒！'); return;
+  }
+  nextCard();
+}
+function nextCard(){
+  if(!revQueue.length){ endReview(); return; }
+  revCur=revQueue.shift();
+  const c=revCur;
+  if(c.kind==='vocab'){
+    const v=VOCAB.find(x=>x.h===c.h);
+    qShell.innerHTML=`<div class="q-progress"><i style="width:${(1-revQueue.length/Math.max(1,revQueue.length+1))*100}%"></i></div>
+      <div style="font-size:.78rem;color:#8a7f6a;letter-spacing:2px">SPACED REPETITION · 到期复习 · ${revQueue.length+1} left</div>
+      <div class="q-hanzi">${v.h} <button class="listen" style="font-size:1.2rem" onclick="speak('${v.h}')">🗣️</button></div>
+      <div class="q-pinyin">${v.p}</div>
+      <div id="card-back" style="min-height:70px;font-size:1.15rem;cursor:pointer;color:#b7a88c;padding-top:14px">👆 tap to reveal meaning</div>
+      <div id="grade-row" style="display:none;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap">
+        <button class="q-opt" style="max-width:150px" onclick="gradeRev(2)">😖 Again · 10 min</button>
+        <button class="q-opt" style="max-width:150px" onclick="gradeRev(4)">🙂 Good</button>
+        <button class="q-opt" style="max-width:150px" onclick="gradeRev(5)">😎 Easy</button>
+      </div>`;
+    document.getElementById('card-back').onclick=function(){
+      this.innerHTML=`<b style="color:var(--ink)">${esc(v.e)}</b>`; this.style.cursor='default';
+      document.getElementById('grade-row').style.display='flex';
+    };
+  } else {
+    const m=c.m;
+    qShell.innerHTML=`<div class="q-progress"><i></i></div>
+      <div style="font-size:.78rem;color:#8a7f6a;letter-spacing:2px">MISTAKE REPAIR · 纠错复习</div>
+      <div style="font-size:1.15rem;margin:22px 0 6px;color:#8a7f6a">你曾经说：</div>
+      <div class="q-hanzi" style="color:var(--red);font-size:2.2rem">❌ ${esc(m.wrong)}</div>
+      <div id="card-back" style="min-height:60px;font-size:1.2rem;cursor:pointer;color:#b7a88c;padding-top:10px">👆 tap to reveal the correct way</div>
+      <div id="grade-row" style="display:none;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap">
+        <button class="q-opt" style="max-width:150px" onclick="gradeRev(2)">😖 Still hard</button>
+        <button class="q-opt" style="max-width:150px" onclick="gradeRev(4)">🙂 Got it</button>
+        <button class="q-opt" style="max-width:150px" onclick="gradeRev(5)">😎 Easy</button>
+      </div>`;
+    document.getElementById('card-back').onclick=function(){
+      this.innerHTML=`✅ <b style="color:var(--jade)">${esc(m.right)}</b>`; this.style.cursor='default';
+      document.getElementById('grade-row').style.display='flex'; speak(m.right);
+    };
+  }
+}
+function gradeRev(q){
+  if(revCur.kind==='vocab'){ gradeVocab(revCur.h,q); if(q>=4) profile.xp+=5; }
+  else { gradeMistake(revCur.m,q); if(q>=4) profile.xp+=5; }
+  saveProfile(); nextCard();
+}
+function endReview(){
+  const li=levelInfo();
+  qShell.innerHTML=`<div class="q-score-big" style="font-size:2.6rem;color:var(--jade)">复习完成！✅</div>
+    <p style="color:#8a7f6a;margin-top:12px">Your memory schedule is updated. Next reviews come right before you'd forget.</p>
+    <p style="color:var(--gold);margin-top:8px">Lv.${li.lv} · ${profile.xp} XP</p>
+    <div class="flash-cta"><button class="btn btn-red" onclick="startQuiz()">🃏 Lesson quiz</button>
+    <a class="btn btn-ghost" style="color:var(--ink);border-color:#ccc" href="#chat">💬 Chat more</a></div>`;
+  speak('复习完成，太棒了！'); updateDueBadge();
+}
+
+/* =============== quiz =============== */
+const qShell = document.getElementById('quiz-shell');
+let qOrder=[], qIdx=0, qScore=0;
+function startQuiz(){
+  qOrder=[...VOCAB].sort(()=>Math.random()-.5).slice(0,10);
+  qIdx=0; qScore=0; renderQ();
+}
+function renderQ(){
+  const v=qOrder[qIdx];
+  const opts=new Set([v.e]);
+  while(opts.size<4) opts.add(pick(VOCAB).e);
+  const arr=[...opts].sort(()=>Math.random()-.5);
+  qShell.innerHTML=`
+    <div class="q-progress"><i style="width:${qIdx/qOrder.length*100}%"></i></div>
+    <div style="font-size:.8rem;color:#8a7f6a;letter-spacing:2px">第 ${qIdx+1} 题 / 共 ${qOrder.length} 题</div>
+    <div class="q-hanzi">${v.h} <button class="listen" style="font-size:1.2rem" onclick="speak('${v.h}')">🗣️</button></div>
+    <div class="q-pinyin">${v.p}</div>
+    <div class="q-opts">${arr.map(o=>`<button class="q-opt" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+    <div class="q-feedback" id="q-fb"></div>`;
+  qShell.querySelectorAll('.q-opt').forEach(b=>b.onclick=()=>{
+    if(b.dataset.v===v.e){ b.classList.add('correct'); qScore++;
+      gradeVocab(v.h,5); profile.xp+=10;
+      document.getElementById('q-fb').innerHTML=`<span style="color:var(--jade)">✅ 正确！太棒了！</span>`;
+      speak('正确！太棒了！');
+    } else {
+      b.classList.add('wrong');
+      gradeVocab(v.h,2); logMistake(`测验答错：${v.h}`,`${v.h} = ${v.e}`);
+      qShell.querySelector(`[data-v="${CSS.escape(v.e)}"]`).classList.add('correct');
+      document.getElementById('q-fb').innerHTML=`<span style="color:var(--red)">❌ 正确答案是「${esc(v.e)}」。没关系，记住它！</span>`;
+      speak(`正确答案是，${v.e}`);
+    }
+    qShell.querySelectorAll('.q-opt').forEach(x=>x.onclick=null);
+    setTimeout(()=>{ qIdx++; qIdx<qOrder.length?renderQ():endQuiz(); }, 1500);
+  });
+}
+function endQuiz(){
+  const best = Math.max(qScore, +(localStorage.getItem('bestScore')||0));
+  localStorage.setItem('bestScore', best);
+  document.getElementById('best-score').textContent = `🏆 最佳成绩：${best} / 10`;
+  const praise = qScore>=8 ? '你太厉害了！完美的成绩！' : qScore>=5 ? '做得不错！继续加油！' : '别灰心，多复习生词再来一次！';
+  qShell.innerHTML=`
+    <div class="q-score-big">${qScore}<span style="font-size:1.6rem;color:#8a7f6a"> / 10</span></div>
+    <p style="margin:14px 0 6px;font-size:1.1rem">${praise}</p>
+    <p style="color:#8a7f6a;font-size:.9rem">${qScore>=8?'Excellent! You really know these words!':qScore>=5?'Good job! Review the tricky ones above.':'Review the slides and try again — 加油!'}</p>
+    <div class="flash-cta">
+      <button class="btn btn-red" onclick="startQuiz()">🔄 再试一次</button>
+      <a class="btn btn-ghost" style="color:var(--ink);border-color:#ccc" href="#lesson">📖 复习课程</a>
+    </div>`;
+  speak(praise);
+}
+document.getElementById('best-score').textContent = localStorage.getItem('bestScore') ? `🏆 最佳成绩：${localStorage.getItem('bestScore')} / 10` : '';
+startQuiz();
+updateDueBadge(); renderProfile(); refreshStatus();
+if(!rec) setTimeout(()=>showBanner('🎤 <b>This browser has no speech recognition</b> (Brave/Firefox), so I can\'t hear you here — type your Chinese and I\'ll speak my replies. For two-way voice, open this page in <b>Chrome or Edge</b>.'), 1500);
+setInterval(updateDueBadge, 30000);
+
+/* automatic greeting — speak as soon as the browser allows */
+let greeted=false, greetMsgShown=false;
+function greet(fromUser){
+  if(greeted) return;
+  const name = localStorage.getItem('studentName');
+  const g = name
+    ? `你好，${name}！我是王老师，欢迎回来！准备好学习了吗？跟我说：你好！`
+    : '你好！我是王老师，你的中文老师。我们今天学习：兴趣爱好。准备好了吗？跟我说：你好！';
+  speak(g);
+  if(!greetMsgShown){ addMsg('teacher', name ? `你好，${name}！欢迎回来！今天继续加油！` : '你好！我是王老师！准备好学习「兴趣爱好」了吗？跟我说：你好！',
+    'Nǐ hǎo! Wǒ shì Wáng lǎoshī.', 'Hello! I\'m Teacher Wang — ready? Say 你好!'); greetMsgShown=true; }
+  document.getElementById('voice-toast').style.display='none';
+  if(fromUser){ greeted=true; }                       // user-initiated greet counts forever
+  else setTimeout(()=>{ if(!lastSpeakHeard && !userGestured) greeted=false; }, 2000);  // load-time greet may retry once
+}
+// try to speak immediately on load; if the browser blocks it, greet on first interaction
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    try{ greet(); }catch(e){}
+    if(!greeted) document.getElementById('voice-toast').style.display='block';
+  }, 600);
+});
+let userGestured=false;
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, ()=>{
+  try{ speechSynthesis.resume(); }catch(e){}
+  if(!userGestured){ userGestured=true; if(!greeted) greet(true); }   // greet exactly once, inside the first real tap
+}, {once:false}));
+// Chrome stops long utterances (~15s bug) — keep the engine alive
+setInterval(()=>{ try{ if(speechSynthesis.speaking){ speechSynthesis.pause(); speechSynthesis.resume(); } }catch(e){} }, 8000);
+// voices load async on mobile — re-pick when they arrive
+speechSynthesis.onvoiceschanged = ()=>{ pickVoice(); };
+// WebAudio beep — independent of TTS, isolates 'device audio' vs 'TTS-only' failure
+let audioCtx=null;
+function beep(freq=880, dur=0.22){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.5,audioCtx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+dur+0.05);
+    return true;
+  }catch(e){ return false; }
+}
+document.getElementById('test-voice').onclick=()=>{
+  diagOn=true; diagLog=[];
+  dlog('voices on this device: '+(('speechSynthesis' in window)? speechSynthesis.getVoitsSafe().map(v=>v.name+'['+v.lang+'] '+(v.localService?'(local/offline)':'(NETWORK — needs google.com)')) .join(' | ') : 'NONE'));
+  if(networkVoiceOnly) dlog('⚠️ Only NETWORK Google voices found. If google.com is unreachable (e.g. mainland China), they stay SILENT. Install an offline Chinese voice — steps in the chat reply.');
+  const ms=document.getElementById('mic-state');
+  const ttsOK = 'speechSynthesis' in window;
+  pickVoice();
+  const vs = ttsOK ? speechSynthesis.getVoitsSafe() : [];
+  // stage 1: raw audio beep
+  const beepOK = beep();
+  ms.style.background='rgba(255,209,102,.3)';
+  ms.textContent = beepOK ? '📳 Beep sent… listening for TTS…' : '⚠️ AudioContext blocked';
+  // stage 2: TTS
+  if(ttsOK) speak('你好！我是王老师。你能听到我的声音吗？');
+  setTimeout(()=>{
+    if(!beepOK){
+      ms.textContent='🔇 DEVICE AUDIO BLOCKED · check silent switch / volume / site sound permission';
+      ms.style.background='rgba(255,80,80,.35)';
+    } else if(!ttsOK){
+      ms.textContent='🔇 NO TTS IN THIS BROWSER · try Chrome or Edge';
+      ms.style.background='rgba(255,80,80,.35)';
+    } else if(lastSpeakHeard){
+      ms.textContent=`✅ Sound works! (${vs.length} voices${zhVoice?', zh ✓':''})`;
+      ms.style.background='rgba(60,200,130,.3)';
+    } else {
+      ms.textContent=`🔇 TTS silent · ${vs.length} voices${zhVoice?' · zh ✓':' · NO zh voice'} · see diagnostic ↑`;
+      ms.style.background='rgba(255,80,80,.35)';
+      dlog('RESULT: silent. If ONSTART fired above but no sound = OS voice broken. If no ONSTART = browser blocked it.');
+      if(zhLocal.length===0) dlog('NEXT STEP → install an offline Chinese voice: Windows Settings → Time & language → Speech → Add voices → Chinese (Microsoft Xiaoxiao). Then fully restart the browser.');
+    }
+  }, 1400);
+};
+// safe wrapper (getVoices can throw in odd sandboxes)
+if('speechSynthesis' in window){ speechSynthesis.getVoitsSafe = ()=>{ try{return speechSynthesis.getVoices();}catch(e){return [];} }; }
+
+/* enable voice (browsers require a click before audio) */
+document.getElementById('enable-voice').onclick=function(){
+  pickVoice();
+  greet(true);
+  this.textContent='🔊 Voice is ON';
+  this.style.opacity='.75';
+};
+
+/* nav highlight + reveal greeting */
+const links=[...document.querySelectorAll('.nav-links a')];
+addEventListener('scroll',()=>{
+  let curId='home';
+  for(const s of document.querySelectorAll('section,header')){
+    if(scrollY >= s.offsetTop-200) curId=s.id;
+  }
+  links.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+curId));
+});
+addMsg('sys','Teacher Wang is online · 王老师上线了 · she will say hello automatically 🔊');
+</script>
+<script>
+// installable-app support: register offline service worker (https/localhost only)
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+  addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
