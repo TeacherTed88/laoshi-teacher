@@ -660,6 +660,12 @@ function stopJabber(){ if(jabber){ clearInterval(jabber); jabber=null; } const m
 (function lookLoop(){ const go=()=>{ const h=av(); if(h && (getMood()==='idle'||getMood()==='listening')){ const d=['l','r','u',''][Math.floor(Math.random()*4)]; h.dataset.look=d; if(d) setTimeout(()=>{ const hh=av(); if(hh) hh.dataset.look=''; }, 700+Math.random()*700); } setTimeout(go, 2300+Math.random()*3400); }; setTimeout(go,2600); })();
 /* micro-moods — curious looks while idle */
 (function microMoodLoop(){ const go=()=>{ if(getMood()==='idle'){ setMood('curious'); setTimeout(()=>{ if(getMood()==='curious') setMood('idle'); }, 1100+Math.random()*900); } setTimeout(go, 4800+Math.random()*5200); }; setTimeout(go,5200); })();
+function killSpeech(){
+  speakToken++;                                     // invalidate the current speech chain — its onend handlers die silently
+  try{ speechSynthesis.cancel(); }catch(e){}
+  const av=document.getElementById('avatar'); if(av) av.classList.remove('speaking');
+  stopJabber();
+}
 let lastSpeakHeard=false, diagOn=false, diagLog=[];
 function copyDiag(){
   const txt='语伴 Laoshi mic/voice report\n'+diagLog.join('\n');
@@ -811,6 +817,7 @@ function teacherReply(text){
     const extra = learnFromUser(text, r);
     if(extra){ r = {zh:r.zh+' '+extra.zh, py:(r.py?r.py+' ':'')+(extra.py||''), en:(r.en?r.en+' ':'')+(extra.en||''), fix:r.fix}; }
     if(!extra && !aiCfg && Math.random()<0.12){ r = {zh:r.zh+' '+pick(CHIT_CHAT), py:r.py, en:r.en, fix:r.fix}; }
+    teacherEchoLog.push({text:r.zh, ts:Date.now()}); if(teacherEchoLog.length>4) teacherEchoLog.shift();
     addMsg('teacher', r.zh, r.py, r.en, r.fix);
     speak(r.zh, ()=>{
       const md=r.mood;
@@ -818,7 +825,7 @@ function teacherReply(text){
       else if(/👏|完全正确|太棒|说对了|Correct|Nice|progress/i.test(r.zh)){ setMood('happy'); setTimeout(()=>{ if(getMood()==='happy') setMood('idle'); },2600); }
     });
     refreshStatus();
-  }, 550 + Math.random()*600);
+  }, 350 + Math.random()*450);
 }
 
 function pick(a){return a[Math.floor(Math.random()*a.length)];}
@@ -954,7 +961,7 @@ document.querySelectorAll('.suggest').forEach(b=>b.onclick=()=>send(b.textConten
 const micBtn = document.getElementById('mic-btn');
 const micState = document.getElementById('mic-state');
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false;
+let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[];
 if(SR){
   rec = new SR(); rec.lang='zh-CN'; rec.interimResults=true; rec.maxAlternatives=1;
   let finalT='';
@@ -978,7 +985,8 @@ if(SR){
     micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Tap the mic to speak';
     const v=document.getElementById('chat-text').value.trim();
     stopMeter(); setMood('idle');
-    if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
+    if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); }
+    else if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
     else if(!lastRecError){ hearShow('🤷 heard nothing — tap mic & speak again','err'); }
     hearHide(2600);
     if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb), 350); dlog('🔊 teacher speaks her held reply'); }
@@ -1089,9 +1097,8 @@ micBtn.onclick=()=>{
     }
     if(!recording){ stopMeter(); dlog('🎙 start canceled while awaiting mic'); return; }
     micBtn.classList.add('recording');
-    try{ speechSynthesis.cancel(); }catch(e){}      // she yields the floor instantly
-    stopJabber(); setMood('listening');
-    document.getElementById('avatar').classList.remove('speaking');
+    killSpeech();                                     // hard-kill mid-word: chain invalidated, jabber stopped
+    setMood('listening');
     micState.textContent='🔴 Listening… tap the mic again to stop & send · 请说中文';
     addMsg('sys','🎤 我在听… tap the mic again to stop & send');
     try{ rec.start(); recStarted=true;
@@ -1100,10 +1107,15 @@ micBtn.onclick=()=>{
   })();
 };
 /* manual finish fallback if rec.stop() never answers */
+function isEcho(v){
+  const now=Date.now();
+  return teacherEchoLog.some(e=> now-e.ts < 20000 && e.text.indexOf(v.slice(0, Math.min(10, v.length))) !== -1);
+}
 function finishRec(){
   const v=document.getElementById('chat-text').value.trim();
   stopMeter(); setMood('idle');
   micState.textContent='🎤 Tap the mic to speak';
+  if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); hearHide(2600); return; }
   if(v){ hearShow('✓ heard: '+v,'final'); send(v); } else { hearShow('🤷 heard nothing — try again','err'); }
   hearHide(2600);
 }
@@ -1208,8 +1220,9 @@ function aiFillUI(){
   if(!aiCfg) return;
   const b=document.getElementById('ai-base'),k=document.getElementById('ai-key'),m=document.getElementById('ai-model'),u=document.getElementById('ai-url');
   if(!b) return;
-  if(![...b.options].some(o=>o.value===aiCfg.base)) b.value='custom'; else b.value=aiCfg.base;
+  const isCustom=![...b.options].some(o=>o.value===aiCfg.base); b.value=isCustom?'custom':aiCfg.base;
   if(k) k.value=aiCfg.key; if(m) m.value=aiCfg.model;
+  if(isCustom){ u.style.display='block'; }
   if(u&&aiCfg.base&&![...b.options].some(o=>o.value===aiCfg.base)) u.value=aiCfg.base;
   if(u&&aiCfg.base&&!/[...]/.test('')){}
   if(u&&aiCfg.base&&![...b.options].some(o=>o.value===aiCfg.base)) u.value=aiCfg.base;
@@ -1590,9 +1603,12 @@ window.addEventListener('load', ()=>{
   }, 600);
 });
 let userGestured=false;
-['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, ()=>{
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, (e)=>{
   try{ speechSynthesis.resume(); }catch(e){}
-  if(!userGestured){ userGestured=true; if(!greeted) greet(true); }   // greet exactly once, inside the first real tap
+  if(!userGestured){
+    userGestured=true;
+    if(!(e.target && e.target.closest && e.target.closest('#mic-btn')) && !greeted) greet(true);   // mic tap = your turn, not greeting time
+  }
 }, {once:false}));
 // Chrome stops long utterances (~15s bug) — keep the engine alive
 setInterval(()=>{ try{ if(speechSynthesis.speaking){ speechSynthesis.pause(); speechSynthesis.resume(); } }catch(e){} }, 8000);
