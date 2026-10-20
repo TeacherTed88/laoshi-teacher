@@ -364,6 +364,8 @@ button{touch-action:manipulation;}
   .stage-ring{width:196px;height:196px;top:22px;}
   .mic-row .mic-btn{width:76px;height:76px;font-size:1.7rem;}
 }
+.chunk-in{animation:chunkIn .3s ease;}
+@keyframes chunkIn{from{opacity:.15}to{opacity:1}}
 footer{text-align:center;padding:60px 24px 40px;color:var(--mist);font-size:.82rem;position:relative;z-index:2;}
 footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red);border-radius:10px;display:grid;place-items:center;color:#fff;font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.4rem;box-shadow:0 8px 24px rgba(200,54,27,.4);}
 </style>
@@ -674,8 +676,9 @@ function copyDiag(){
   else{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); done(); }
 }
 function dlog(m){ diagLog.push(m); if(diagOn){ const d=document.getElementById('diag'); d.style.display='block'; d.innerHTML='<b>🔬 DIAGNOSTIC</b> <span id="diag-copy" style="cursor:pointer;color:var(--gold)" onclick="copyDiag()">📋 copy</span> <span style="float:right;cursor:pointer;color:#fff" onclick="this.parentNode.style.display=\'none\'">✕</span>\n'+diagLog.join('\n'); } }
-function speak(text, cb){
-  if(recording){ heldSpeak={text,cb}; dlog('⏸ teacher holds her reply while you speak'); return; }
+function speak(text, cb, onChunk){
+  teacherEchoLog.push({text, ts:Date.now()}); if(teacherEchoLog.length>6) teacherEchoLog.shift();
+  if(recording){ heldSpeak={text,cb,onChunk}; dlog('⏸ teacher holds her reply while you speak'); return; }
   dlog('speak() called, '+text.length+' chars, tts='+(('speechSynthesis' in window)?'yes':'NO')+', zhVoice='+(zhVoice?zhVoice.name:'none'));
   if(!('speechSynthesis' in window)) return;
   try{ speechSynthesis.cancel(); }catch(e){}
@@ -684,21 +687,28 @@ function speak(text, cb){
   const netOnly = networkVoiceOnly;  // decide once, from fresh data
   const chunks = (text.match(/[^。！？!?;；\n]+[。！？!?;；]*/g)||[text]).filter(x=>x.trim());
   const av = document.getElementById('avatar');
-  let i=0, retried=false;
+  let i=0, retried=false, lastBoundary=0;
   const tok=++speakToken;             // token guard: retry loop can never interleave with the main loop
+  // gentle watchdog: only if the engine reports word boundaries and then goes silent >7s → nudge resume (Chrome desktop stall fix)
+  const wd=setInterval(()=>{
+    if(tok!==speakToken){ clearInterval(wd); return; }
+    if(lastBoundary && speechSynthesis.speaking && Date.now()-lastBoundary>7000){ try{ speechSynthesis.resume(); }catch(e){} lastBoundary=Date.now(); }
+  },4000);
   function next(noVoice){
-    if(tok!==speakToken) return;
-    if(i>=chunks.length){ av.classList.remove('speaking'); stopJabber(); setMood('idle'); cb && cb(); return; }
+    if(tok!==speakToken){ clearInterval(wd); return; }
+    if(i>=chunks.length){ clearInterval(wd); av.classList.remove('speaking'); stopJabber(); setMood('idle'); cb && cb(); return; }
     const u = new SpeechSynthesisUtterance(chunks[i]);
     u.lang='zh-CN'; u.rate=0.88; u.pitch=1.05; u.volume=1;
     if(zhVoice && !netOnly) u.voice = zhVoice;               // offline zh first
     else if(anyLocalVoice) u.voice = anyLocalVoice;          // no offline zh → force ANY offline voice (Microsoft) — never Google
-    dlog('  voice chosen: '+(u.voice?u.voice.name+' ('+(u.voice.localService?'local':'NETWORK')+')':'browser default ⚠'));
-    u.onstart = ()=>{ if(tok!==speakToken) return; lastSpeakHeard=true; av.classList.add('speaking'); setMood('speaking'); startJabber(); dlog('  utterance '+(i+1)+' ONSTART (voice='+(u.voice?u.voice.name:'default')+')'); };
+    u.onboundary= ()=>{ lastBoundary=Date.now(); };
+    u.onstart = ()=>{ if(tok!==speakToken) return; lastSpeakHeard=true; av.classList.add('speaking'); setMood('speaking'); startJabber(); if(onChunk) onChunk(i, chunks[i]); dlog('  utterance '+(i+1)+' ONSTART'); };
     u.onend  = ()=>{ if(tok!==speakToken) return; dlog('  utterance '+(i+1)+' onend'); i++; next(noVoice); };
     u.onerror= (e)=>{ if(tok!==speakToken) return; dlog('  utterance '+(i+1)+' ERROR: '+e.error); i++; next(noVoice); };
     speechSynthesis.speak(u);
   }
+  // safety: if the engine never starts at all, reveal the full text anyway (caller passes onChunk with i=-1)
+  if(onChunk) setTimeout(()=>{ if(tok===speakToken && !lastSpeakHeard) onChunk(-1, text); }, 1800);
   // small delay after cancel() — cancel+speak in the same tick is silently dropped in some browsers
   dlog('  attempt 1 with '+(netOnly?'DEFAULT (network zh voices skipped)':(zhVoice?zhVoice.name:'default voice'))+' in 60ms…');
   setTimeout(()=>next(false), 60);
@@ -780,6 +790,32 @@ const tStatus = document.getElementById('t-status');
 let studentName = localStorage.getItem('studentName') || null;
 
 const AVATAR_URL='data:image/svg+xml;utf8,'+encodeURIComponent(document.getElementById('ava-svg').outerHTML);
+/* teacher message whose Chinese text populates chunk-by-chunk as she speaks */
+function addMsgLive(){
+  const d=document.createElement('div'); d.className='msg teacher'; d.style.display='flex'; d.style.gap='10px'; d.style.alignItems='flex-start';
+  d.innerHTML=`<img class="msg-ava" src="${AVATAR_URL}"><div style="flex:1"><div class="meta">王老师 · Teacher Wang</div><span class="live-zh"></span><button class="listen" title="听">🗣️</button><button class="tr-toggle" title="拼音/翻译开关">文</button>`+
+    `<span class="py" style="display:none"></span><span class="tr" style="display:none"></span><span class="fix" style="display:none"></span></div>`;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+  const zhEl=d.querySelector('.live-zh');
+  let done=false;
+  d.querySelector('.listen').onclick=()=>speak(zhEl.textContent);
+  d.querySelector('.tr-toggle').onclick=()=>d.classList.toggle('tr-only');
+  return {
+    el:d,
+    appendChunk(t, idx){
+      if(done && idx>=0) return;
+      if(idx===-1){ zhEl.textContent=t; done=true; log.scrollTop=log.scrollHeight; return; }
+      const sp=document.createElement('span'); sp.textContent=t; sp.className='chunk-in'; zhEl.appendChild(sp);
+      log.scrollTop=log.scrollHeight;
+    },
+    finish(r){
+      if(r.py){ const py=d.querySelector('.py'); py.textContent=r.py; py.style.display=''; }
+      if(r.en){ const tr=d.querySelector('.tr'); tr.textContent=r.en; tr.style.display=''; }
+      if(r.fix){ const fx=d.querySelector('.fix'); fx.textContent='✏️ '+r.fix; fx.style.display=''; }
+      log.scrollTop=log.scrollHeight;
+    }
+  };
+}
 function addMsg(role, main, py, tr, fix){
   const d = document.createElement('div'); d.className='msg '+role;
   if(role==='teacher'){
@@ -817,12 +853,12 @@ function teacherReply(text){
     const extra = learnFromUser(text, r);
     if(extra){ r = {zh:r.zh+' '+extra.zh, py:(r.py?r.py+' ':'')+(extra.py||''), en:(r.en?r.en+' ':'')+(extra.en||''), fix:r.fix}; }
     if(!extra && !aiCfg && Math.random()<0.12){ r = {zh:r.zh+' '+pick(CHIT_CHAT), py:r.py, en:r.en, fix:r.fix}; }
-    addMsg('teacher', r.zh, r.py, r.en, r.fix);
-    speak(r.zh, ()=>{
+    const liveMsg = addMsgLive();
+    speak(r.zh, ()=>{ liveMsg.finish(r);
       const md=r.mood;
       if(md && md!=='idle'){ setMood(md); setTimeout(()=>{ if(getMood()===md) setMood('idle'); },2600); }
       else if(/👏|完全正确|太棒|说对了|Correct|Nice|progress/i.test(r.zh)){ setMood('happy'); setTimeout(()=>{ if(getMood()==='happy') setMood('idle'); },2600); }
-    });
+    }, (idx, chunk)=>{ liveMsg.appendChunk(chunk, idx); });
     refreshStatus();
   }, 350 + Math.random()*450);
 }
@@ -960,7 +996,7 @@ document.querySelectorAll('.suggest').forEach(b=>b.onclick=()=>send(b.textConten
 const micBtn = document.getElementById('mic-btn');
 const micState = document.getElementById('mic-state');
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false;
+let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[];
 if(SR){
   rec = new SR(); rec.lang='zh-CN'; rec.interimResults=true; rec.maxAlternatives=1;
   let finalT='';
@@ -984,10 +1020,11 @@ if(SR){
     micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Tap the mic to speak';
     const v=document.getElementById('chat-text').value.trim();
     stopMeter(); setMood('idle');
-    if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
+    if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); }
+    else if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
     else if(!lastRecError){ hearShow('🤷 heard nothing — tap mic & speak again','err'); }
     hearHide(2600);
-    if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb), 350); dlog('🔊 teacher speaks her held reply'); }
+    if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb,h.onChunk), 350); dlog('🔊 teacher speaks her held reply'); }
     lastRecError=false;
     dlog('🎙 rec.onend');
   };
@@ -1105,10 +1142,17 @@ micBtn.onclick=()=>{
   })();
 };
 /* manual finish fallback if rec.stop() never answers */
+const normTxt=x=>x.replace(/[\s,."':;!?。，！？：；、「」『』——…·\-~～()（）]/g,'');
+function isEcho(v){
+  const now=Date.now(), nv=normTxt(v);
+  if(nv.length<2) return false;
+  return teacherEchoLog.some(e=> now-e.ts < 25000 && normTxt(e.text).indexOf(nv.slice(0, Math.min(8, nv.length))) !== -1);
+}
 function finishRec(){
   const v=document.getElementById('chat-text').value.trim();
   stopMeter(); setMood('idle');
   micState.textContent='🎤 Tap the mic to speak';
+  if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); hearHide(2600); return; }
   if(v){ hearShow('✓ heard: '+v,'final'); send(v); } else { hearShow('🤷 heard nothing — try again','err'); }
   hearHide(2600);
 }
@@ -1603,8 +1647,6 @@ let userGestured=false;
     if(!(e.target && e.target.closest && e.target.closest('#mic-btn')) && !greeted) greet(true);   // mic tap = your turn, not greeting time
   }
 }, {once:false}));
-// Chrome stops long utterances (~15s bug) — keep the engine alive
-setInterval(()=>{ try{ if(speechSynthesis.speaking){ speechSynthesis.pause(); speechSynthesis.resume(); } }catch(e){} }, 8000);
 // voices load async on mobile — re-pick when they arrive
 speechSynthesis.onvoiceschanged = ()=>{ pickVoice(); };
 // WebAudio beep — independent of TTS, isolates 'device audio' vs 'TTS-only' failure
