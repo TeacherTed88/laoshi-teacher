@@ -1255,9 +1255,17 @@ function buildSystemPrompt(){
    +'严格按四行输出：\nZH: （中文）\nPY: （拼音）\nEN: （英文翻译）\nMOOD: idle 或 happy 或 angry';
 }
 function parseAI(txt){
-  const g=k=>{ const m=txt.match(new RegExp('^'+k+':\\s*(.+)$','im')); return m?m[1].trim():''; };
-  const zh=g('ZH'); if(!zh) return null;
-  return { zh, py:g('PY'), en:g('EN'), mood:(g('MOOD')||'idle').toLowerCase() };
+  txt=(txt||'').trim();
+  const g=k=>{ const m=txt.match(new RegExp('^'+k+'[:：]\\s*(.+)$','im')); return m?m[1].trim():''; };
+  let zh=g('ZH');
+  let py=g('PY'), en=g('EN'), mood=(g('MOOD')||'idle').toLowerCase();
+  if(!zh){                                   // model ignored the format → salvage any Chinese lines instead of falling back
+    const lines=txt.split('\n').filter(l=>/[一-鿿]/.test(l));
+    if(lines.length){ zh=lines.join(' ').trim(); }
+  }
+  if(!zh) return null;
+  if(mood!=='happy'&&mood!=='angry') mood='idle';
+  return { zh, py, en, mood };
 }
 async function aiReply(userText){
   const msgs=[{role:'system',content:buildSystemPrompt()}].concat(convo.slice(-10)).concat([{role:'user',content:userText}]);
@@ -1267,8 +1275,10 @@ async function aiReply(userText){
     body:JSON.stringify({model:aiCfg.model,messages:msgs,temperature:0.7,max_tokens:260})});
   if(!resp.ok) throw new Error('HTTP '+resp.status);
   const data=await resp.json();
-  const out=parseAI((data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'');
-  if(!out) throw new Error('unexpected reply format');
+  const raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+  const out=parseAI(raw);
+  if(!out){ dlog('🧠 AI unparseable — raw head: '+String(raw).slice(0,160)); throw new Error('unexpected reply format'); }
+  dlog('🧠 AI reply ok ('+raw.length+' chars)');
   return out;
 }
 function aiFillUI(){
