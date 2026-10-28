@@ -358,6 +358,21 @@ button{touch-action:manipulation;}
 .msg.teacher .fix{display:block;font-size:.82rem;color:#8a7f6a;margin-top:6px;background:#f6efdd;border-radius:8px;padding:5px 9px;}
 .chunk-in{animation:chunkIn .3s ease;}
 @keyframes chunkIn{from{opacity:.15}to{opacity:1}}
+/* multi-user */
+#login-overlay{position:fixed;inset:0;z-index:500;display:none;place-items:center;background:rgba(8,5,15,.82);backdrop-filter:blur(10px);}
+.login-card{width:min(360px,90vw);background:#171019;border:1px solid rgba(201,162,39,.4);border-radius:20px;padding:28px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);}
+.login-card h3{font-family:'Noto Serif SC',serif;color:#f7f2e8;font-size:1.4rem;margin-bottom:4px;}
+.login-card .who{color:var(--mist);font-size:.82rem;margin-bottom:18px;}
+#user-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.user-btn{padding:12px;border-radius:12px;border:1px solid rgba(201,162,39,.35);background:rgba(201,162,39,.08);color:#f7f2e8;font-family:inherit;font-size:.95rem;cursor:pointer;transition:.2s;}
+.user-btn:hover{background:rgba(201,162,39,.2);}
+.user-btn small{color:var(--gold);font-size:.7rem;margin-left:6px;}
+#add-user{width:100%;padding:12px;border-radius:12px;border:1.5px dashed rgba(125,255,168,.5);background:rgba(125,255,168,.07);color:#7dffa8;font-family:inherit;font-size:.92rem;cursor:pointer;}
+#add-user:hover{background:rgba(125,255,168,.15);}
+.pin-note{margin-top:14px;font-size:.68rem;color:var(--mist);}
+#user-chip{background:rgba(247,242,232,.08);border:1px solid rgba(201,162,39,.4);color:var(--gold);border-radius:99px;padding:8px 13px;font-size:.82rem;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
+#user-chip:hover{background:rgba(201,162,39,.18);}
+@media(max-width:700px){#user-chip{padding:6px 9px;font-size:.72rem;max-width:76px;}}
 footer{text-align:center;padding:60px 24px 40px;color:var(--mist);font-size:.82rem;position:relative;z-index:2;}
 footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red);border-radius:10px;display:grid;place-items:center;color:#fff;font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.4rem;box-shadow:0 8px 24px rgba(200,54,27,.4);}
 </style>
@@ -366,6 +381,16 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
 <canvas id="bg-canvas"></canvas>
 <div id="city"><svg viewBox="0 0 1440 620" preserveAspectRatio="xMidYMax slice"><defs><linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0612"/><stop offset=".55" stop-color="#0a0612" stop-opacity=".55"/><stop offset="1" stop-color="#0a0612" stop-opacity="0"/></linearGradient><linearGradient id="glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2d78" stop-opacity="0"/><stop offset="1" stop-color="#ff2d78" stop-opacity=".14"/></linearGradient></defs><rect width="1440" height="620" fill="url(#glow)"/><path d="M0,420 Q180,340 360,400 T720,380 T1080,405 T1440,370 L1440,620 L0,620 Z" fill="#150d20"/><rect x="20" y="200" width="90" height="420" fill="#171126"/><rect x="47" y="190" width="36" height="10" fill="#171126"/><line x1="65" y1="190" x2="65" y2="174" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="75" y="214" width="7" height="10"/><rect x="27" y="280" width="7" height="10"/><rect x="43" y="302" width="7" height="10"/><rect x="75" y="302" width="7" height="10"/></g><g fill="#4a2b52"><rect x="59" y="236" width="7" height="10"/><rect x="75" y="258" width="7" height="10"/><rect x="91" y="368" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="27" y="258" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="59" y="302" width="7" height="10"/><rect x="75" y="390" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="27" y="456" width="7" height="10"/><rect x="27" y="544" width="7" height="10"/><rect x="75" y="588" width="7" height="10"/></g><rect x="140" y="260" width="70" height="360" fill="#171126"/><rect x="161" y="250" width="28" height="10" fill="#171126"/><line x1="175" y1="250" x2="175" y2="234" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".7"><rect x="179" y="296" width="7" height="10"/><rect x="163" y="384" width="7" height="10"/></g><g fill="#4a2b52"><rect x="147" y="318" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="147" y="340" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="163" y="340" width="7" height="10"/><rect x="195" y="340" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="179" y="340" width="7" height="10"/><rect x="179" y="472" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="195" y="560" width="7" height="10"/></g><rect x="240" y="180" width="100" height="440" fill="#171126"/><rect x="270" y="170" width="40" height="10" fill="#171126"/><line x1="290" y1="170" x2="290" y2="154" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e"><rect x="311" y="194" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="311" y="216" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="327" y="216" width="7" height="10"/><rect x="295" y="414" width="7" height="10"/><rect x="295" y="436" width="7" height="10"/><rect x="247" y="458" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="263" y="282" width="7" height="10"/><rect x="311" y="304" width="7" height="10"/><rect x="247" y="392" width="7" height="10"/><rect x="311" y="436" width="7" height="10"/><rect x="247" y="546" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="247" y="370" width="7" height="10"/><rect x="311" y="590" width="7" height="10"/></g><g fill="#4a2b52"><rect x="311" y="546" width="7" height="10"/><rect x="247" y="568" width="7" height="10"/></g><rect x="370" y="230" width="80" height="390" fill="#171126"/><rect x="394" y="220" width="32" height="10" fill="#171126"/><line x1="410" y1="220" x2="410" y2="204" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e"><rect x="377" y="266" width="7" height="10"/><rect x="377" y="376" width="7" height="10"/><rect x="425" y="398" width="7" height="10"/></g><g fill="#4a2b52"><rect x="393" y="266" width="7" height="10"/><rect x="409" y="574" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="425" y="354" width="7" height="10"/><rect x="409" y="376" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="377" y="486" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="377" y="596" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="409" y="596" width="7" height="10"/></g><rect x="480" y="160" width="90" height="460" fill="#171126"/><rect x="507" y="150" width="36" height="10" fill="#171126"/><line x1="525" y1="150" x2="525" y2="134" stroke="#171126" stroke-width="3"/><g fill="#4a2b52"><rect x="551" y="218" width="7" height="10"/><rect x="551" y="240" width="7" height="10"/><rect x="503" y="460" width="7" height="10"/><rect x="503" y="548" width="7" height="10"/><rect x="535" y="592" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="487" y="284" width="7" height="10"/><rect x="503" y="372" width="7" height="10"/><rect x="551" y="372" width="7" height="10"/><rect x="551" y="394" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="487" y="372" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="535" y="372" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="551" y="460" width="7" height="10"/><rect x="551" y="482" width="7" height="10"/><rect x="535" y="526" width="7" height="10"/></g><rect x="600" y="250" width="70" height="370" fill="#171126"/><rect x="621" y="240" width="28" height="10" fill="#171126"/><line x1="635" y1="240" x2="635" y2="224" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="655" y="264" width="7" height="10"/></g><g fill="#4a2b52"><rect x="623" y="308" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="655" y="330" width="7" height="10"/><rect x="607" y="484" width="7" height="10"/><rect x="639" y="484" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="655" y="374" width="7" height="10"/><rect x="655" y="484" width="7" height="10"/><rect x="655" y="594" width="7" height="10"/></g><rect x="700" y="190" width="95" height="430" fill="#171126"/><rect x="728" y="180" width="38" height="10" fill="#171126"/><line x1="748" y1="180" x2="748" y2="164" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".5"><rect x="707" y="204" width="7" height="10"/><rect x="723" y="248" width="7" height="10"/><rect x="723" y="314" width="7" height="10"/><rect x="723" y="402" width="7" height="10"/><rect x="755" y="446" width="7" height="10"/><rect x="723" y="512" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="723" y="204" width="7" height="10"/><rect x="723" y="292" width="7" height="10"/><rect x="707" y="468" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="755" y="248" width="7" height="10"/><rect x="707" y="336" width="7" height="10"/><rect x="771" y="358" width="7" height="10"/></g><g fill="#4a2b52"><rect x="723" y="380" width="7" height="10"/><rect x="755" y="512" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="723" y="424" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="755" y="468" width="7" height="10"/></g><rect x="820" y="240" width="75" height="380" fill="#171126"/><rect x="842" y="230" width="30" height="10" fill="#171126"/><line x1="858" y1="230" x2="858" y2="214" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e"><rect x="859" y="254" width="7" height="10"/><rect x="827" y="496" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="843" y="320" width="7" height="10"/><rect x="827" y="452" width="7" height="10"/><rect x="859" y="496" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="827" y="342" width="7" height="10"/><rect x="843" y="430" width="7" height="10"/><rect x="859" y="430" width="7" height="10"/><rect x="859" y="562" width="7" height="10"/><rect x="843" y="584" width="7" height="10"/></g><g fill="#4a2b52"><rect x="843" y="342" width="7" height="10"/><rect x="827" y="386" width="7" height="10"/><rect x="859" y="408" width="7" height="10"/><rect x="859" y="518" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="875" y="518" width="7" height="10"/></g><rect x="920" y="170" width="90" height="450" fill="#171126"/><rect x="947" y="160" width="36" height="10" fill="#171126"/><line x1="965" y1="160" x2="965" y2="144" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="991" y="184" width="7" height="10"/><rect x="991" y="426" width="7" height="10"/><rect x="959" y="514" width="7" height="10"/><rect x="975" y="514" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="927" y="250" width="7" height="10"/><rect x="959" y="404" width="7" height="10"/><rect x="991" y="470" width="7" height="10"/><rect x="975" y="580" width="7" height="10"/></g><g fill="#4a2b52"><rect x="943" y="294" width="7" height="10"/><rect x="959" y="316" width="7" height="10"/><rect x="927" y="338" width="7" height="10"/><rect x="943" y="382" width="7" height="10"/><rect x="959" y="382" width="7" height="10"/><rect x="975" y="382" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="943" y="338" width="7" height="10"/><rect x="959" y="536" width="7" height="10"/></g><rect x="1040" y="210" width="80" height="410" fill="#171126"/><rect x="1064" y="200" width="32" height="10" fill="#171126"/><line x1="1080" y1="200" x2="1080" y2="184" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".7"><rect x="1047" y="246" width="7" height="10"/><rect x="1095" y="422" width="7" height="10"/></g><g fill="#4a2b52"><rect x="1063" y="246" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="1047" y="334" width="7" height="10"/><rect x="1047" y="532" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="1079" y="466" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="1047" y="488" width="7" height="10"/><rect x="1079" y="510" width="7" height="10"/><rect x="1095" y="576" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="1079" y="488" width="7" height="10"/></g><rect x="1150" y="160" width="95" height="460" fill="#171126"/><rect x="1178" y="150" width="38" height="10" fill="#171126"/><line x1="1198" y1="150" x2="1198" y2="134" stroke="#171126" stroke-width="3"/><g fill="#3d2f5e" opacity=".7"><rect x="1205" y="196" width="7" height="10"/><rect x="1205" y="482" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="1157" y="240" width="7" height="10"/><rect x="1157" y="438" width="7" height="10"/><rect x="1189" y="438" width="7" height="10"/><rect x="1157" y="548" width="7" height="10"/><rect x="1189" y="570" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="1173" y="306" width="7" height="10"/><rect x="1157" y="394" width="7" height="10"/><rect x="1189" y="504" width="7" height="10"/></g><g fill="#4a2b52"><rect x="1205" y="372" width="7" height="10"/><rect x="1157" y="570" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="1189" y="416" width="7" height="10"/><rect x="1173" y="460" width="7" height="10"/><rect x="1205" y="548" width="7" height="10"/><rect x="1205" y="570" width="7" height="10"/><rect x="1189" y="592" width="7" height="10"/></g><rect x="1270" y="230" width="80" height="390" fill="#171126"/><rect x="1294" y="220" width="32" height="10" fill="#171126"/><line x1="1310" y1="220" x2="1310" y2="204" stroke="#171126" stroke-width="3"/><g fill="#4a2b52"><rect x="1293" y="266" width="7" height="10"/><rect x="1309" y="442" width="7" height="10"/><rect x="1309" y="464" width="7" height="10"/><rect x="1325" y="574" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="1293" y="354" width="7" height="10"/><rect x="1277" y="508" width="7" height="10"/><rect x="1325" y="552" width="7" height="10"/></g><g fill="#3d2f5e"><rect x="1309" y="398" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".5"><rect x="1325" y="420" width="7" height="10"/><rect x="1293" y="442" width="7" height="10"/><rect x="1293" y="486" width="7" height="10"/><rect x="1293" y="574" width="7" height="10"/></g><g fill="#4a2b52" opacity=".7"><rect x="1325" y="508" width="7" height="10"/><rect x="1277" y="530" width="7" height="10"/></g><rect x="1380" y="190" width="60" height="430" fill="#171126"/><rect x="1398" y="180" width="24" height="10" fill="#171126"/><line x1="1410" y1="180" x2="1410" y2="164" stroke="#171126" stroke-width="3"/><g fill="#4a2b52" opacity=".7"><rect x="1387" y="204" width="7" height="10"/><rect x="1403" y="314" width="7" height="10"/></g><g fill="#3d2f5e" opacity=".7"><rect x="1403" y="204" width="7" height="10"/><rect x="1387" y="336" width="7" height="10"/></g><g fill="#4a2b52" opacity=".5"><rect x="1419" y="314" width="7" height="10"/><rect x="1419" y="490" width="7" height="10"/></g><rect x="10" y="140" width="110" height="480" fill="#0d0a16"/><rect x="43" y="130" width="44" height="10" fill="#0d0a16"/><line x1="65" y1="130" x2="65" y2="114" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".7"><rect x="17" y="154" width="7" height="10"/><rect x="81" y="154" width="7" height="10"/><rect x="17" y="330" width="7" height="10"/><rect x="65" y="396" width="7" height="10"/></g><g fill="#ffd98a"><rect x="65" y="154" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="33" y="176" width="7" height="10"/><rect x="49" y="242" width="7" height="10"/><rect x="33" y="352" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="49" y="176" width="7" height="10"/><rect x="65" y="176" width="7" height="10"/><rect x="97" y="242" width="7" height="10"/><rect x="17" y="352" width="7" height="10"/><rect x="65" y="506" width="7" height="10"/><rect x="65" y="594" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="49" y="198" width="7" height="10"/><rect x="49" y="396" width="7" height="10"/></g><g fill="#ff7a45"><rect x="81" y="220" width="7" height="10"/><rect x="33" y="286" width="7" height="10"/><rect x="17" y="506" width="7" height="10"/><rect x="17" y="528" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="65" y="242" width="7" height="10"/><rect x="49" y="440" width="7" height="10"/><rect x="65" y="440" width="7" height="10"/><rect x="97" y="506" width="7" height="10"/><rect x="17" y="550" width="7" height="10"/></g><g fill="#5be3ff"><rect x="97" y="264" width="7" height="10"/></g><g fill="#c9a227"><rect x="17" y="286" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="49" y="286" width="7" height="10"/><rect x="97" y="528" width="7" height="10"/><rect x="65" y="572" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="65" y="286" width="7" height="10"/><rect x="17" y="484" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="17" y="374" width="7" height="10"/><rect x="49" y="484" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="33" y="396" width="7" height="10"/><rect x="81" y="440" width="7" height="10"/><rect x="97" y="484" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="17" y="462" width="7" height="10"/><rect x="97" y="462" width="7" height="10"/><rect x="17" y="594" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="65" y="550" width="7" height="10"/></g><rect x="150" y="90" width="90" height="530" fill="#0d0a16"/><rect x="177" y="80" width="36" height="10" fill="#0d0a16"/><line x1="195" y1="80" x2="195" y2="64" stroke="#0d0a16" stroke-width="3"/><g fill="#5be3ff" opacity=".5"><rect x="173" y="104" width="7" height="10"/><rect x="205" y="170" width="7" height="10"/><rect x="221" y="280" width="7" height="10"/><rect x="221" y="456" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="205" y="104" width="7" height="10"/><rect x="173" y="148" width="7" height="10"/><rect x="205" y="522" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="189" y="126" width="7" height="10"/><rect x="189" y="170" width="7" height="10"/><rect x="221" y="500" width="7" height="10"/><rect x="157" y="522" width="7" height="10"/><rect x="221" y="566" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="221" y="126" width="7" height="10"/><rect x="221" y="170" width="7" height="10"/><rect x="157" y="434" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="189" y="148" width="7" height="10"/><rect x="205" y="258" width="7" height="10"/><rect x="205" y="346" width="7" height="10"/><rect x="189" y="566" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="157" y="170" width="7" height="10"/><rect x="173" y="588" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="173" y="170" width="7" height="10"/><rect x="189" y="280" width="7" height="10"/><rect x="189" y="302" width="7" height="10"/><rect x="189" y="500" width="7" height="10"/><rect x="189" y="588" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="173" y="192" width="7" height="10"/><rect x="189" y="214" width="7" height="10"/></g><g fill="#ffd98a"><rect x="205" y="192" width="7" height="10"/><rect x="205" y="390" width="7" height="10"/><rect x="221" y="390" width="7" height="10"/><rect x="189" y="456" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="221" y="192" width="7" height="10"/></g><g fill="#5be3ff"><rect x="173" y="214" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="157" y="280" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="205" y="302" width="7" height="10"/><rect x="189" y="434" width="7" height="10"/><rect x="221" y="478" width="7" height="10"/><rect x="189" y="544" width="7" height="10"/></g><g fill="#c9a227"><rect x="221" y="368" width="7" height="10"/><rect x="173" y="566" width="7" height="10"/></g><g fill="#ff7a45"><rect x="173" y="412" width="7" height="10"/><rect x="205" y="456" width="7" height="10"/></g><rect x="270" y="170" width="120" height="450" fill="#0d0a16"/><rect x="306" y="160" width="48" height="10" fill="#0d0a16"/><line x1="330" y1="160" x2="330" y2="144" stroke="#0d0a16" stroke-width="3"/><g fill="#ff7a45" opacity=".5"><rect x="309" y="184" width="7" height="10"/><rect x="325" y="228" width="7" height="10"/><rect x="325" y="272" width="7" height="10"/><rect x="277" y="338" width="7" height="10"/><rect x="373" y="360" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="293" y="206" width="7" height="10"/><rect x="277" y="316" width="7" height="10"/><rect x="277" y="492" width="7" height="10"/><rect x="309" y="514" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="357" y="206" width="7" height="10"/></g><g fill="#5be3ff"><rect x="309" y="228" width="7" height="10"/><rect x="325" y="382" width="7" height="10"/><rect x="277" y="536" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="309" y="250" width="7" height="10"/><rect x="341" y="404" width="7" height="10"/><rect x="325" y="426" width="7" height="10"/><rect x="341" y="514" width="7" height="10"/><rect x="309" y="558" width="7" height="10"/><rect x="357" y="558" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="325" y="250" width="7" height="10"/><rect x="309" y="294" width="7" height="10"/><rect x="293" y="404" width="7" height="10"/><rect x="325" y="448" width="7" height="10"/><rect x="357" y="514" width="7" height="10"/><rect x="277" y="558" width="7" height="10"/></g><g fill="#ff7a45"><rect x="357" y="250" width="7" height="10"/><rect x="309" y="272" width="7" height="10"/><rect x="325" y="338" width="7" height="10"/><rect x="341" y="360" width="7" height="10"/><rect x="325" y="492" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="373" y="250" width="7" height="10"/><rect x="341" y="470" width="7" height="10"/></g><g fill="#c9a227"><rect x="293" y="272" width="7" height="10"/><rect x="277" y="360" width="7" height="10"/><rect x="277" y="448" width="7" height="10"/><rect x="309" y="492" width="7" height="10"/><rect x="293" y="558" width="7" height="10"/></g><g fill="#ffd98a"><rect x="341" y="272" width="7" height="10"/><rect x="293" y="316" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="325" y="294" width="7" height="10"/><rect x="293" y="470" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="373" y="294" width="7" height="10"/><rect x="309" y="360" width="7" height="10"/><rect x="309" y="404" width="7" height="10"/><rect x="357" y="470" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="293" y="338" width="7" height="10"/><rect x="309" y="448" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="293" y="360" width="7" height="10"/><rect x="277" y="470" width="7" height="10"/><rect x="341" y="580" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="373" y="382" width="7" height="10"/><rect x="309" y="536" width="7" height="10"/></g><rect x="420" y="60" width="95" height="560" fill="#0d0a16"/><rect x="448" y="50" width="38" height="10" fill="#0d0a16"/><line x1="468" y1="50" x2="468" y2="34" stroke="#0d0a16" stroke-width="3"/><g fill="#5be3ff"><rect x="427" y="74" width="7" height="10"/><rect x="443" y="228" width="7" height="10"/><rect x="475" y="514" width="7" height="10"/><rect x="443" y="536" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="443" y="74" width="7" height="10"/><rect x="475" y="382" width="7" height="10"/><rect x="491" y="514" width="7" height="10"/><rect x="475" y="536" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="427" y="96" width="7" height="10"/><rect x="427" y="140" width="7" height="10"/><rect x="443" y="140" width="7" height="10"/><rect x="443" y="426" width="7" height="10"/><rect x="491" y="580" width="7" height="10"/></g><g fill="#c9a227"><rect x="475" y="96" width="7" height="10"/><rect x="475" y="338" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="427" y="118" width="7" height="10"/><rect x="459" y="118" width="7" height="10"/><rect x="459" y="580" width="7" height="10"/></g><g fill="#ff7a45"><rect x="475" y="118" width="7" height="10"/><rect x="459" y="316" width="7" height="10"/><rect x="459" y="338" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="491" y="118" width="7" height="10"/><rect x="459" y="272" width="7" height="10"/><rect x="443" y="316" width="7" height="10"/><rect x="427" y="338" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="427" y="162" width="7" height="10"/><rect x="427" y="228" width="7" height="10"/><rect x="443" y="272" width="7" height="10"/><rect x="459" y="426" width="7" height="10"/><rect x="475" y="470" width="7" height="10"/><rect x="491" y="558" width="7" height="10"/></g><g fill="#ffd98a"><rect x="427" y="184" width="7" height="10"/><rect x="443" y="558" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="459" y="184" width="7" height="10"/><rect x="491" y="492" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="427" y="206" width="7" height="10"/><rect x="443" y="294" width="7" height="10"/><rect x="427" y="360" width="7" height="10"/><rect x="427" y="558" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="443" y="206" width="7" height="10"/><rect x="443" y="448" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="427" y="250" width="7" height="10"/><rect x="427" y="294" width="7" height="10"/><rect x="475" y="404" width="7" height="10"/><rect x="491" y="404" width="7" height="10"/><rect x="427" y="426" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="475" y="250" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="443" y="514" width="7" height="10"/><rect x="427" y="580" width="7" height="10"/></g><rect x="540" y="130" width="110" height="490" fill="#0d0a16"/><rect x="573" y="120" width="44" height="10" fill="#0d0a16"/><line x1="595" y1="120" x2="595" y2="104" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".5"><rect x="547" y="144" width="7" height="10"/><rect x="579" y="430" width="7" height="10"/></g><g fill="#ff7a45"><rect x="579" y="144" width="7" height="10"/><rect x="547" y="254" width="7" height="10"/><rect x="627" y="386" width="7" height="10"/></g><g fill="#ffd98a"><rect x="611" y="166" width="7" height="10"/><rect x="579" y="408" width="7" height="10"/><rect x="611" y="430" width="7" height="10"/><rect x="627" y="496" width="7" height="10"/><rect x="611" y="562" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="563" y="188" width="7" height="10"/><rect x="611" y="188" width="7" height="10"/><rect x="563" y="210" width="7" height="10"/><rect x="627" y="518" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="579" y="188" width="7" height="10"/><rect x="595" y="254" width="7" height="10"/><rect x="547" y="364" width="7" height="10"/></g><g fill="#5be3ff"><rect x="595" y="210" width="7" height="10"/><rect x="579" y="232" width="7" height="10"/><rect x="627" y="276" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="611" y="232" width="7" height="10"/><rect x="579" y="298" width="7" height="10"/><rect x="627" y="540" width="7" height="10"/><rect x="547" y="562" width="7" height="10"/></g><g fill="#c9a227"><rect x="579" y="254" width="7" height="10"/><rect x="595" y="386" width="7" height="10"/><rect x="611" y="518" width="7" height="10"/><rect x="595" y="584" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="627" y="254" width="7" height="10"/><rect x="563" y="364" width="7" height="10"/><rect x="627" y="430" width="7" height="10"/><rect x="579" y="562" width="7" height="10"/><rect x="595" y="562" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="563" y="298" width="7" height="10"/><rect x="563" y="408" width="7" height="10"/><rect x="595" y="452" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="563" y="320" width="7" height="10"/><rect x="627" y="364" width="7" height="10"/><rect x="627" y="452" width="7" height="10"/><rect x="611" y="474" width="7" height="10"/><rect x="547" y="496" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="547" y="342" width="7" height="10"/><rect x="547" y="386" width="7" height="10"/><rect x="563" y="386" width="7" height="10"/><rect x="595" y="408" width="7" height="10"/><rect x="611" y="408" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="579" y="342" width="7" height="10"/><rect x="563" y="540" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="547" y="474" width="7" height="10"/><rect x="611" y="584" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="579" y="518" width="7" height="10"/><rect x="579" y="584" width="7" height="10"/></g><rect x="680" y="80" width="100" height="540" fill="#0d0a16"/><rect x="710" y="70" width="40" height="10" fill="#0d0a16"/><line x1="730" y1="70" x2="730" y2="54" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d"><rect x="687" y="94" width="7" height="10"/><rect x="767" y="160" width="7" height="10"/><rect x="687" y="468" width="7" height="10"/><rect x="687" y="534" width="7" height="10"/></g><g fill="#ff7a45"><rect x="703" y="94" width="7" height="10"/><rect x="687" y="336" width="7" height="10"/><rect x="751" y="424" width="7" height="10"/><rect x="687" y="490" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="767" y="94" width="7" height="10"/><rect x="767" y="182" width="7" height="10"/><rect x="703" y="402" width="7" height="10"/><rect x="703" y="468" width="7" height="10"/><rect x="719" y="468" width="7" height="10"/><rect x="751" y="556" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="687" y="116" width="7" height="10"/><rect x="735" y="446" width="7" height="10"/><rect x="751" y="468" width="7" height="10"/><rect x="703" y="490" width="7" height="10"/><rect x="751" y="490" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="735" y="116" width="7" height="10"/><rect x="751" y="116" width="7" height="10"/><rect x="751" y="160" width="7" height="10"/><rect x="687" y="292" width="7" height="10"/><rect x="735" y="402" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="767" y="116" width="7" height="10"/><rect x="687" y="226" width="7" height="10"/><rect x="719" y="490" width="7" height="10"/><rect x="719" y="556" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="719" y="138" width="7" height="10"/><rect x="767" y="248" width="7" height="10"/><rect x="751" y="358" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="751" y="138" width="7" height="10"/><rect x="703" y="270" width="7" height="10"/><rect x="767" y="292" width="7" height="10"/><rect x="767" y="424" width="7" height="10"/></g><g fill="#c9a227"><rect x="703" y="160" width="7" height="10"/><rect x="751" y="226" width="7" height="10"/><rect x="687" y="424" width="7" height="10"/><rect x="735" y="578" width="7" height="10"/></g><g fill="#ffd98a"><rect x="687" y="182" width="7" height="10"/><rect x="719" y="292" width="7" height="10"/><rect x="703" y="534" width="7" height="10"/><rect x="719" y="578" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="719" y="182" width="7" height="10"/><rect x="735" y="380" width="7" height="10"/></g><g fill="#5be3ff"><rect x="735" y="182" width="7" height="10"/><rect x="719" y="248" width="7" height="10"/><rect x="687" y="270" width="7" height="10"/><rect x="719" y="314" width="7" height="10"/><rect x="767" y="380" width="7" height="10"/><rect x="719" y="402" width="7" height="10"/><rect x="719" y="424" width="7" height="10"/><rect x="767" y="446" width="7" height="10"/><rect x="703" y="512" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="751" y="182" width="7" height="10"/><rect x="719" y="270" width="7" height="10"/><rect x="703" y="314" width="7" height="10"/><rect x="751" y="380" width="7" height="10"/><rect x="751" y="534" width="7" height="10"/><rect x="767" y="556" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="735" y="248" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="751" y="248" width="7" height="10"/><rect x="751" y="314" width="7" height="10"/><rect x="703" y="336" width="7" height="10"/></g><rect x="800" y="150" width="120" height="470" fill="#0d0a16"/><rect x="836" y="140" width="48" height="10" fill="#0d0a16"/><line x1="860" y1="140" x2="860" y2="124" stroke="#0d0a16" stroke-width="3"/><g fill="#5be3ff" opacity=".5"><rect x="823" y="164" width="7" height="10"/><rect x="823" y="252" width="7" height="10"/><rect x="855" y="406" width="7" height="10"/><rect x="903" y="406" width="7" height="10"/><rect x="887" y="450" width="7" height="10"/><rect x="903" y="494" width="7" height="10"/><rect x="839" y="516" width="7" height="10"/><rect x="903" y="582" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="855" y="164" width="7" height="10"/><rect x="839" y="296" width="7" height="10"/></g><g fill="#c9a227"><rect x="871" y="164" width="7" height="10"/><rect x="823" y="318" width="7" height="10"/><rect x="903" y="362" width="7" height="10"/><rect x="807" y="450" width="7" height="10"/></g><g fill="#5be3ff"><rect x="823" y="186" width="7" height="10"/><rect x="839" y="406" width="7" height="10"/><rect x="871" y="450" width="7" height="10"/><rect x="855" y="472" width="7" height="10"/><rect x="887" y="538" width="7" height="10"/><rect x="839" y="582" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="839" y="186" width="7" height="10"/><rect x="855" y="318" width="7" height="10"/><rect x="871" y="318" width="7" height="10"/><rect x="839" y="340" width="7" height="10"/><rect x="887" y="494" width="7" height="10"/><rect x="807" y="560" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="871" y="186" width="7" height="10"/><rect x="807" y="208" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="839" y="208" width="7" height="10"/><rect x="887" y="252" width="7" height="10"/><rect x="903" y="384" width="7" height="10"/><rect x="903" y="428" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="855" y="208" width="7" height="10"/><rect x="887" y="230" width="7" height="10"/><rect x="855" y="274" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="871" y="274" width="7" height="10"/><rect x="855" y="428" width="7" height="10"/><rect x="871" y="428" width="7" height="10"/><rect x="807" y="494" width="7" height="10"/><rect x="903" y="516" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="807" y="296" width="7" height="10"/><rect x="823" y="406" width="7" height="10"/><rect x="807" y="516" width="7" height="10"/><rect x="855" y="538" width="7" height="10"/></g><g fill="#ffd98a"><rect x="871" y="296" width="7" height="10"/><rect x="903" y="296" width="7" height="10"/><rect x="839" y="384" width="7" height="10"/><rect x="903" y="472" width="7" height="10"/><rect x="807" y="538" width="7" height="10"/></g><g fill="#ff7a45"><rect x="807" y="384" width="7" height="10"/><rect x="871" y="560" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="855" y="450" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="839" y="472" width="7" height="10"/><rect x="887" y="516" width="7" height="10"/></g><rect x="950" y="50" width="95" height="570" fill="#0d0a16"/><rect x="978" y="40" width="38" height="10" fill="#0d0a16"/><line x1="998" y1="40" x2="998" y2="24" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".7"><rect x="957" y="64" width="7" height="10"/><rect x="973" y="372" width="7" height="10"/><rect x="1021" y="416" width="7" height="10"/><rect x="957" y="504" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="1005" y="64" width="7" height="10"/><rect x="957" y="174" width="7" height="10"/><rect x="1021" y="218" width="7" height="10"/><rect x="1005" y="262" width="7" height="10"/><rect x="973" y="328" width="7" height="10"/><rect x="1005" y="548" width="7" height="10"/><rect x="973" y="592" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1021" y="64" width="7" height="10"/><rect x="973" y="152" width="7" height="10"/><rect x="957" y="284" width="7" height="10"/><rect x="973" y="460" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="957" y="86" width="7" height="10"/><rect x="989" y="86" width="7" height="10"/><rect x="1021" y="196" width="7" height="10"/></g><g fill="#5be3ff"><rect x="973" y="108" width="7" height="10"/><rect x="1005" y="482" width="7" height="10"/><rect x="1021" y="592" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1005" y="108" width="7" height="10"/><rect x="957" y="152" width="7" height="10"/><rect x="957" y="306" width="7" height="10"/><rect x="957" y="548" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="989" y="130" width="7" height="10"/><rect x="973" y="174" width="7" height="10"/><rect x="973" y="196" width="7" height="10"/><rect x="989" y="196" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1005" y="152" width="7" height="10"/><rect x="957" y="240" width="7" height="10"/><rect x="1005" y="438" width="7" height="10"/></g><g fill="#ffd98a"><rect x="989" y="174" width="7" height="10"/><rect x="1005" y="284" width="7" height="10"/><rect x="1021" y="438" width="7" height="10"/><rect x="973" y="570" width="7" height="10"/><rect x="989" y="592" width="7" height="10"/></g><g fill="#c9a227"><rect x="1005" y="174" width="7" height="10"/><rect x="1005" y="240" width="7" height="10"/><rect x="989" y="262" width="7" height="10"/><rect x="1021" y="482" width="7" height="10"/><rect x="1005" y="504" width="7" height="10"/><rect x="1021" y="570" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="957" y="196" width="7" height="10"/><rect x="957" y="218" width="7" height="10"/><rect x="973" y="306" width="7" height="10"/><rect x="989" y="306" width="7" height="10"/><rect x="957" y="350" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="1005" y="196" width="7" height="10"/><rect x="989" y="350" width="7" height="10"/><rect x="1005" y="372" width="7" height="10"/><rect x="1021" y="372" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="1021" y="240" width="7" height="10"/><rect x="1005" y="306" width="7" height="10"/><rect x="989" y="394" width="7" height="10"/><rect x="1005" y="460" width="7" height="10"/></g><g fill="#ff7a45"><rect x="1021" y="284" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="973" y="548" width="7" height="10"/></g><rect x="1070" y="120" width="115" height="500" fill="#0d0a16"/><rect x="1104" y="110" width="46" height="10" fill="#0d0a16"/><line x1="1128" y1="110" x2="1128" y2="94" stroke="#0d0a16" stroke-width="3"/><g fill="#ff5b8d" opacity=".7"><rect x="1093" y="134" width="7" height="10"/><rect x="1077" y="288" width="7" height="10"/><rect x="1125" y="486" width="7" height="10"/><rect x="1157" y="552" width="7" height="10"/><rect x="1157" y="574" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="1125" y="134" width="7" height="10"/><rect x="1141" y="244" width="7" height="10"/><rect x="1077" y="266" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="1109" y="156" width="7" height="10"/><rect x="1125" y="222" width="7" height="10"/><rect x="1157" y="222" width="7" height="10"/><rect x="1125" y="420" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="1157" y="156" width="7" height="10"/><rect x="1157" y="376" width="7" height="10"/><rect x="1125" y="464" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1077" y="178" width="7" height="10"/><rect x="1157" y="244" width="7" height="10"/><rect x="1093" y="398" width="7" height="10"/><rect x="1157" y="464" width="7" height="10"/><rect x="1077" y="486" width="7" height="10"/></g><g fill="#ffd98a"><rect x="1093" y="178" width="7" height="10"/><rect x="1125" y="178" width="7" height="10"/><rect x="1077" y="244" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="1093" y="200" width="7" height="10"/><rect x="1093" y="464" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="1093" y="244" width="7" height="10"/><rect x="1109" y="464" width="7" height="10"/><rect x="1141" y="464" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1141" y="266" width="7" height="10"/><rect x="1077" y="376" width="7" height="10"/><rect x="1141" y="442" width="7" height="10"/><rect x="1141" y="530" width="7" height="10"/><rect x="1093" y="596" width="7" height="10"/><rect x="1109" y="596" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="1077" y="310" width="7" height="10"/><rect x="1109" y="332" width="7" height="10"/><rect x="1157" y="354" width="7" height="10"/><rect x="1109" y="376" width="7" height="10"/><rect x="1077" y="398" width="7" height="10"/><rect x="1109" y="398" width="7" height="10"/><rect x="1157" y="398" width="7" height="10"/><rect x="1077" y="530" width="7" height="10"/></g><g fill="#ff7a45"><rect x="1077" y="332" width="7" height="10"/><rect x="1125" y="508" width="7" height="10"/><rect x="1093" y="574" width="7" height="10"/></g><g fill="#5be3ff"><rect x="1141" y="508" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1109" y="530" width="7" height="10"/><rect x="1109" y="552" width="7" height="10"/></g><g fill="#c9a227"><rect x="1125" y="530" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="1077" y="552" width="7" height="10"/></g><rect x="1210" y="85" width="95" height="535" fill="#0d0a16"/><rect x="1238" y="75" width="38" height="10" fill="#0d0a16"/><line x1="1258" y1="75" x2="1258" y2="59" stroke="#0d0a16" stroke-width="3"/><g fill="#ff7a45" opacity=".7"><rect x="1217" y="99" width="7" height="10"/><rect x="1265" y="209" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="1217" y="121" width="7" height="10"/><rect x="1265" y="297" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="1233" y="121" width="7" height="10"/><rect x="1265" y="121" width="7" height="10"/><rect x="1249" y="319" width="7" height="10"/><rect x="1217" y="385" width="7" height="10"/><rect x="1249" y="385" width="7" height="10"/><rect x="1265" y="429" width="7" height="10"/><rect x="1233" y="473" width="7" height="10"/><rect x="1233" y="539" width="7" height="10"/><rect x="1217" y="561" width="7" height="10"/><rect x="1265" y="583" width="7" height="10"/></g><g fill="#ff7a45"><rect x="1281" y="121" width="7" height="10"/><rect x="1265" y="539" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1233" y="143" width="7" height="10"/><rect x="1281" y="165" width="7" height="10"/><rect x="1249" y="451" width="7" height="10"/><rect x="1249" y="517" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="1265" y="143" width="7" height="10"/><rect x="1265" y="253" width="7" height="10"/><rect x="1233" y="341" width="7" height="10"/></g><g fill="#c9a227"><rect x="1217" y="165" width="7" height="10"/><rect x="1249" y="165" width="7" height="10"/><rect x="1281" y="187" width="7" height="10"/><rect x="1265" y="473" width="7" height="10"/><rect x="1233" y="517" width="7" height="10"/><rect x="1249" y="561" width="7" height="10"/></g><g fill="#5be3ff"><rect x="1233" y="209" width="7" height="10"/><rect x="1265" y="275" width="7" height="10"/><rect x="1249" y="495" width="7" height="10"/><rect x="1265" y="561" width="7" height="10"/><rect x="1281" y="561" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1217" y="231" width="7" height="10"/><rect x="1217" y="517" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1249" y="231" width="7" height="10"/><rect x="1217" y="275" width="7" height="10"/><rect x="1265" y="407" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="1217" y="253" width="7" height="10"/><rect x="1233" y="319" width="7" height="10"/><rect x="1249" y="429" width="7" height="10"/><rect x="1281" y="451" width="7" height="10"/><rect x="1217" y="539" width="7" height="10"/><rect x="1233" y="561" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="1281" y="253" width="7" height="10"/><rect x="1217" y="363" width="7" height="10"/><rect x="1249" y="473" width="7" height="10"/><rect x="1281" y="495" width="7" height="10"/></g><g fill="#ffd98a"><rect x="1249" y="341" width="7" height="10"/><rect x="1265" y="385" width="7" height="10"/><rect x="1281" y="583" width="7" height="10"/></g><g fill="#ffd98a" opacity=".5"><rect x="1265" y="341" width="7" height="10"/></g><rect x="1330" y="140" width="105" height="480" fill="#0d0a16"/><rect x="1362" y="130" width="42" height="10" fill="#0d0a16"/><line x1="1382" y1="130" x2="1382" y2="114" stroke="#0d0a16" stroke-width="3"/><g fill="#ff7a45"><rect x="1337" y="154" width="7" height="10"/><rect x="1353" y="198" width="7" height="10"/><rect x="1417" y="242" width="7" height="10"/><rect x="1337" y="264" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".7"><rect x="1417" y="154" width="7" height="10"/><rect x="1385" y="198" width="7" height="10"/><rect x="1369" y="528" width="7" height="10"/><rect x="1401" y="550" width="7" height="10"/></g><g fill="#ffd98a" opacity=".7"><rect x="1337" y="176" width="7" height="10"/><rect x="1385" y="220" width="7" height="10"/><rect x="1337" y="352" width="7" height="10"/><rect x="1417" y="462" width="7" height="10"/><rect x="1401" y="506" width="7" height="10"/></g><g fill="#c9a227" opacity=".7"><rect x="1353" y="176" width="7" height="10"/><rect x="1401" y="176" width="7" height="10"/><rect x="1401" y="286" width="7" height="10"/><rect x="1353" y="506" width="7" height="10"/><rect x="1337" y="550" width="7" height="10"/></g><g fill="#ffd98a"><rect x="1369" y="176" width="7" height="10"/><rect x="1369" y="220" width="7" height="10"/><rect x="1401" y="308" width="7" height="10"/></g><g fill="#c9a227"><rect x="1337" y="198" width="7" height="10"/></g><g fill="#ff5b8d"><rect x="1417" y="198" width="7" height="10"/><rect x="1337" y="242" width="7" height="10"/><rect x="1385" y="264" width="7" height="10"/><rect x="1417" y="286" width="7" height="10"/><rect x="1385" y="484" width="7" height="10"/><rect x="1337" y="572" width="7" height="10"/></g><g fill="#5be3ff"><rect x="1369" y="242" width="7" height="10"/><rect x="1369" y="308" width="7" height="10"/><rect x="1337" y="374" width="7" height="10"/><rect x="1337" y="418" width="7" height="10"/><rect x="1417" y="484" width="7" height="10"/></g><g fill="#ff7a45" opacity=".5"><rect x="1353" y="264" width="7" height="10"/><rect x="1337" y="286" width="7" height="10"/><rect x="1385" y="396" width="7" height="10"/><rect x="1417" y="572" width="7" height="10"/></g><g fill="#5be3ff" opacity=".7"><rect x="1353" y="286" width="7" height="10"/><rect x="1337" y="528" width="7" height="10"/><rect x="1417" y="594" width="7" height="10"/></g><g fill="#c9a227" opacity=".5"><rect x="1369" y="286" width="7" height="10"/><rect x="1385" y="352" width="7" height="10"/><rect x="1353" y="440" width="7" height="10"/><rect x="1401" y="462" width="7" height="10"/><rect x="1401" y="484" width="7" height="10"/></g><g fill="#ff5b8d" opacity=".5"><rect x="1385" y="308" width="7" height="10"/></g><g fill="#5be3ff" opacity=".5"><rect x="1369" y="352" width="7" height="10"/><rect x="1337" y="462" width="7" height="10"/><rect x="1401" y="572" width="7" height="10"/><rect x="1369" y="594" width="7" height="10"/></g><g fill="#ff7a45" opacity=".7"><rect x="1353" y="418" width="7" height="10"/></g><text x="720" y="180" class="neon-gold big-neon" text-anchor="middle">重庆</text><text x="720" y="208" class="neon-sub" text-anchor="middle">CHONGQING · 山城</text><text x="58" y="180" class="neon-red" style="fill:#ff4d5e">火</text><text x="58" y="214" class="neon-red" style="fill:#ff4d5e">锅</text><text x="310" y="230" class="neon-cyan" style="fill:#5be3ff">串</text><text x="310" y="260" class="neon-cyan" style="fill:#5be3ff">串</text><text x="310" y="290" class="neon-cyan" style="fill:#5be3ff">香</text><text x="585" y="200" class="neon-gold" style="fill:#ffd166">面</text><text x="585" y="230" class="neon-gold" style="fill:#ffd166">馆</text><text x="843" y="215" class="neon-pink" style="fill:#ff7ad9">茶</text><text x="843" y="245" class="neon-pink" style="fill:#ff7ad9">馆</text><text x="1102" y="190" class="neon-green" style="fill:#7dffa8">江</text><text x="1102" y="220" class="neon-green" style="fill:#7dffa8">景</text><text x="1372" y="200" class="neon-orange" style="fill:#ff9e4d">宵</text><text x="1372" y="230" class="neon-orange" style="fill:#ff9e4d">夜</text><text x="200" y="120" class="neon-red h-sign">大排档</text><text x="1230" y="60" class="neon-cyan h-sign">轻轨</text><g class="rail"><line x1="0" y1="470" x2="1440" y2="470" stroke="#241a38" stroke-width="6"/><line x1="0" y1="466" x2="1440" y2="466" stroke="#3d2f5e" stroke-width="2"/></g><line x1="60" y1="470" x2="60" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="210" y1="470" x2="210" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="360" y1="470" x2="360" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="510" y1="470" x2="510" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="660" y1="470" x2="660" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="810" y1="470" x2="810" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="960" y1="470" x2="960" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="1110" y1="470" x2="1110" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="1260" y1="470" x2="1260" y2="620" stroke="#1a1330" stroke-width="7"/><line x1="1410" y1="470" x2="1410" y2="620" stroke="#1a1330" stroke-width="7"/><g class="train"><rect width="150" height="34" rx="10" fill="#1c4d5e"/><rect x="6" y="438" width="138" height="14" rx="6" fill="#8fe8ff" opacity=".9"/><rect x="58" y="438" width="4" height="14" fill="#1c4d5e"/><circle cx="24" cy="470" r="4" fill="#0a0612"/><circle cx="120" cy="470" r="4" fill="#0a0612"/><rect width="150" height="34" rx="10" fill="none" stroke="#5be3ff" stroke-width="1.5" opacity=".8"/></g><rect width="1440" height="330" fill="url(#mist)"/></svg></div>
 <div class="grain"></div>
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="seal-big" style="margin:0 auto 12px">语</div>
+    <h3>语伴 Laoshi</h3>
+    <p class="who">谁在学习？ · Who is learning?</p>
+    <div id="user-list"></div>
+    <button type="button" id="add-user">＋ 新学员 · New learner</button>
+    <p class="pin-note">Profiles are private to this device · 资料只保存在这台设备</p>
+  </div>
+</div>
 <div id="diag"></div>
 <button type="button" id="health-fab" title="System check">🩺<span class="dot"></span></button>
 <div id="health-panel"></div>
@@ -381,6 +406,7 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
     <a href="#quiz">测验</a>
     <a href="#me">Me</a>
   </div>
+  <button type="button" id="user-chip" title="switch user · 切换用户">👤</button>
   <div class="progress-pill">
     <svg class="progress-ring" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" id="ring-fg" cx="22" cy="22" r="18"/></svg>
     <span class="lbl">课程进度 <b id="prog-txt">0%</b></span>
@@ -767,7 +793,7 @@ for(let i=0;i<130;i++) drops.push({x:Math.random()*innerWidth,y:Math.random()*in
 const slides = [...document.querySelectorAll('.slide')];
 const dotsBox = document.getElementById('dots');
 let cur = 0;
-const seen = new Set(JSON.parse(localStorage.getItem('seenSlides')||'[]'));
+const seen = new Set(JSON.parse(lsGet('seenSlides','[]')));
 slides.forEach((s,i)=>{
   const d=document.createElement('div'); d.className='dot'+(i===0?' on':''); d.onclick=()=>go(i); dotsBox.appendChild(d);
 });
@@ -776,7 +802,7 @@ function updProg(){
   document.getElementById('prog-txt').textContent = p+'%';
   const ring=document.getElementById('ring-fg'), C=2*Math.PI*18;
   ring.style.strokeDasharray=C; ring.style.strokeDashoffset=C*(1-p/100);
-  localStorage.setItem('seenSlides', JSON.stringify([...seen]));
+  lsSet('seenSlides', JSON.stringify([...seen]));
 }
 function go(i){
   slides[cur].classList.remove('active'); dotsBox.children[cur].classList.remove('on');
@@ -805,7 +831,7 @@ const VOCAB = [
 /* =============== chat engine =============== */
 const log = document.getElementById('chat-log');
 const tStatus = document.getElementById('t-status');
-let studentName = localStorage.getItem('studentName') || null;
+let studentName = lsGet('studentName', null);
 
 const AVATAR_URL='data:image/svg+xml;utf8,'+encodeURIComponent(document.getElementById('ava-svg').outerHTML);
 /* teacher message whose Chinese text populates chunk-by-chunk as she speaks */
@@ -866,6 +892,7 @@ function teacherReply(text){
       catch(e){ dlog('🧠 AI failed: '+((e&&e.message)||e)+' → rule brain'); r=null; }
     }
     if(!r) r = brain(text);
+    if(r.learn) addCustomWord(r.learn);
     convo.push({role:'user',content:text},{role:'assistant',content:r.zh});
     if(convo.length>24) convo.splice(0,convo.length-24);
     const extra = learnFromUser(text, r);
@@ -895,9 +922,9 @@ function personalityBrain(t){
     return {zh:'我喜欢的东西不少！我最喜欢火锅——重庆火锅最棒。我也喜欢喝茶、打羽毛球，还有我家的小猫咪咪。讨厌的呢？香菜！还有……学生说"我不会"。你呢，你喜欢什么？我会记住的。', py:'Wǒ zuì xǐhuan huǒguō…', en:'I love hotpot (Chongqing style!), tea, badminton, my cat Mimi. I HATE cilantro… and students saying "I can\'t". What about you?'}; }
   const shared=['火锅','茶','猫','羽毛球','烧饼','重庆'].find(k=>t.includes(k));
   if(shared && Math.random()<0.85){
-    const lines={'火锅':'说到火锅，我昨天刚吃过！我点了毛肚和鸭血，太好吃了。不过记住——我不要香菜！','茶':'对了，我每天早上都喝茶，绿茶让我心情好。学习之前喝一杯，很好！','猫':'咪咪是我最喜欢的小猫，她每天早上坐在我书上，不让我备课！哈哈哈。','羽毛球':'我每周三打羽毛球！运动让大脑更好用——学习也更有效率。','烧饼':'哈哈，烧饼！我早餐经常吃。你是不是也饿了？','重庆':'重庆！那是我最喜欢的城市——火锅、夜景、轻轨……美极了！'};
+    const lines={'火锅':'说到火锅，我昨天刚吃过！我点了毛肚和鸭血，太好吃了。不过记住——我不要香菜！你呢，你吃火锅必点什么？','茶':'对了，我每天早上都喝茶，绿茶让我心情好。你喜欢喝茶还是咖啡？','猫':'咪咪是我最喜欢的小猫，她每天早上坐在我书上，不让我备课！哈哈哈。你有宠物吗？','羽毛球':'我每周三打羽毛球！运动让大脑更好用。你喜欢什么运动？','烧饼':'哈哈，烧饼！我早餐经常吃。你是不是也饿了？','重庆':'重庆！那是我最喜欢的城市——火锅、夜景、轻轨……美极了！你去过重庆吗？'};
     profile.annoy=Math.max(0,profile.annoy-1); saveProfile();
-    return {zh:lines[shared]+' 好了，我们回来学习吧？', py:'', en:'(Her eyes light up — you two have something in common!)'};
+    return {zh:lines[shared], py:'', en:'(Her eyes light up — you two have something in common, and she wants to hear more!)'};
   }
   if(/太难|我不会|学不会|放弃|不想学/.test(t)){
     profile.annoy++; saveProfile();
@@ -921,7 +948,7 @@ function brain(raw){
   // name learning: 我叫X / 我的名字是X
   let m = t.match(/我叫(.{1,6})/) || t.match(/我的名字是(.{1,6})/);
   if(m){
-    studentName = m[1].replace(/[。！!，,]/g,''); localStorage.setItem('studentName', studentName);
+    studentName = m[1].replace(/[。！!，,]/g,''); lsSet('studentName', studentName);
     return {zh:`${studentName}，很高兴认识你！从今天开始我们就是朋友了。你想先聊聊天，还是先复习一下今天的生词？`,
       py:`${studentName}, hěn gāoxìng rènshi nǐ!`, en:`Nice to meet you, ${studentName}! Do you want to chat first, or review today's words?`};
   }
@@ -979,7 +1006,7 @@ function brain(raw){
       py:'Nǎ ge cí nǐ bù míngbai?', en:'Which word don\'t you understand? Just ask me, like: What does 坚持 mean?'};
   }
   // any single vocab word lookup
-  const v = VOCAB.find(v=>t.includes(v.h));
+  const v = VOCAB.concat(customWordPool()).find(v=>t.includes(v.h));
   if(v){
     return {zh:`「${v.h}」读作 ${v.p}，意思是 "${v.e}"。例句：我有一个${v.h==='目标'?'大':''}${v.h}。现在请你用「${v.h}」自己造一个句子，好吗？`,
       py:`${v.p}`, en:`"${v.e}". Now try making your own sentence with  ${v.h}!`};
@@ -990,8 +1017,8 @@ function brain(raw){
   return pick([
     {zh:`不错！我在听呢。你能再说得详细一点吗？用今天学过的词试试，比如「兴趣」「坚持」或者「不但……而且……」。`,
      py:'Búcuò!', en:'Nice! Can you say more? Try using today\'s words like 兴趣, 坚持, or 不但……而且……. ', fix},
-    {zh:`嗯嗯，我明白了。那换个话题吧——你的学习目标是什么？用「我的目标是……」这个句型说说看。`,
-     py:'Wǒ míngbai le.', en:'I see! New topic — what is your study goal? Try: 我的目标是……', fix},
+    {zh:`嗯嗯，我明白了。你为什么这么想？再多跟我说一点吧。`,
+     py:'Wǒ míngbai le.', en:'I see! Why do you think that? Tell me a bit more.', fix},
     {zh:`很好，继续说！记住：说错了没关系，开口最重要。 mistakes are progress! 😊`,
      py:'Hěn hǎo, jìxù shuō!', en:'Keep going! Speaking up matters most — mistakes are progress!', fix}
   ]);
@@ -1228,36 +1255,95 @@ document.getElementById('health-fab').onclick=()=>{
 addEventListener('load',()=>setTimeout(runHealthCheck,1200));
 addEventListener('resize',()=>{ if(document.getElementById('health-panel').style.display==='block') runHealthCheck(); });
 
+/* =============== multi-user (per-user local profiles) =============== */
+const USER_INDEX_KEY='yuban_users';
+const USER_CURRENT_KEY='yuban_current_user';
+(function migrateUsers(){
+  if(localStorage.getItem(USER_INDEX_KEY)) return;
+  ['yuban_profile_v1','studentName','seenSlides','bestScore','yuban_ai'].forEach(k=>{
+    const v=localStorage.getItem(k);
+    if(v!==null){ localStorage.setItem('u_default_'+k, v); localStorage.removeItem(k); }
+  });
+  localStorage.setItem(USER_INDEX_KEY, JSON.stringify([{id:'default', name:'学习者 1', pin:''}]));
+  localStorage.setItem(USER_CURRENT_KEY,'default');
+})();
+const currentUserId = localStorage.getItem(USER_CURRENT_KEY)||'default';
+function uk(k){ return 'u_'+currentUserId+'_'+k; }
+function lsGet(k, fallback){ try{ const v=localStorage.getItem(uk(k)); return v===null?fallback:v; }catch(e){ return fallback; } }
+function lsSet(k,v){ try{ localStorage.setItem(uk(k), v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(uk(k)); }catch(e){} }
+function userIndex(){ try{ return JSON.parse(localStorage.getItem(USER_INDEX_KEY)||'[]'); }catch(e){ return []; } }
+function saveUserIndex(u){ localStorage.setItem(USER_INDEX_KEY, JSON.stringify(u)); }
+function showUserPicker(){
+  const ov=document.getElementById('login-overlay'); if(!ov) return;
+  ov.style.display='grid';
+  const list=document.getElementById('user-list'); list.innerHTML='';
+  userIndex().forEach(u=>{
+    const b=document.createElement('button'); b.type='button'; b.className='user-btn';
+    b.innerHTML='👤 '+esc(u.name)+(u.id===currentUserId?' <small>● current</small>':'');
+    b.onclick=()=>{
+      if(u.pin){ const entered=prompt('PIN (4位数字 / 4-digit PIN):'); if(entered!==u.pin){ alert('PIN 不对 / wrong PIN'); return; } }
+      localStorage.setItem(USER_CURRENT_KEY, u.id); location.reload();
+    };
+    list.appendChild(b);
+  });
+}
+
 /* =============== learner profile + spaced repetition =============== */
 const DAY=86400000, MIN=60000;
-let profile = JSON.parse(localStorage.getItem('yuban_profile_v1')||'null') || {
+let profile = JSON.parse(lsGet('yuban_profile_v1','null')) || {
   xp:0, chats:0, reviews:0, fixed:0, interests:{}, strengths:{}, mistakes:[], srs:{}, lastInterestAsk:0
 };
 let pending=null;
-function saveProfile(){ localStorage.setItem('yuban_profile_v1', JSON.stringify(profile)); updateDueBadge(); renderProfile(); refreshStatus();
+function saveProfile(){ lsSet('yuban_profile_v1', JSON.stringify(profile)); updateDueBadge(); renderProfile(); refreshStatus(); }
+document.getElementById('user-chip').onclick=showUserPicker;
+document.getElementById('add-user').onclick=()=>{
+  const name=(prompt('新学员的名字 / New learner name:')||'').trim(); if(!name) return;
+  const pin=(prompt('设置4位PIN，可留空 / Optional 4-digit PIN:')||'').trim();
+  const id='u'+Date.now();
+  const users=userIndex(); users.push({id, name, pin}); saveUserIndex(users);
+  localStorage.setItem(USER_CURRENT_KEY, id); location.reload();
+};
+const currentUserObj=userIndex().find(x=>x.id===currentUserId);
+document.getElementById('user-chip').textContent='👤 '+(currentUserObj?currentUserObj.name:'学习者');
 document.getElementById('whatsay').onclick=()=>{ const r=document.getElementById('suggest-row'); r.style.display=r.style.display==='flex'?'none':'flex'; };
-if(!rec) setTimeout(()=>showBanner('🎤 <b>This browser has no speech recognition</b> (Brave/Firefox), so I can\'t hear you here — type your Chinese and I\'ll speak my replies. For two-way voice, open this page in <b>Chrome or Edge</b>.'), 1500); }
+if(!rec) setTimeout(()=>showBanner('🎤 <b>This browser has no speech recognition</b> (Brave/Firefox), so I can\'t hear you here — type your Chinese and I\'ll speak my replies. For two-way voice, open this page in <b>Chrome or Edge</b>.'), 1500);
 VOCAB.forEach(v=>{ if(!profile.srs[v.h]) profile.srs[v.h]={reps:0,ease:2.5,ivl:0,due:Date.now()+3*MIN,lapses:0}; });
 
 /* =============== AI brain (optional LLM) =============== */
 let aiCfg=null, convo=[];
-try{ aiCfg=JSON.parse(localStorage.getItem('yuban_ai')||'null'); }catch(e){}
+try{ aiCfg=JSON.parse(lsGet('yuban_ai','null')); }catch(e){}
 function buildSystemPrompt(){
-  const name=localStorage.getItem('studentName')||'未知';
+  const name=lsGet('studentName','未知');
   const ints=Object.keys(profile.interests).join('、')||'无';
   const str=Object.entries(profile.strengths).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]).join('、')||'无';
   const mis=profile.mistakes.slice(0,5).map(m=>m.wrong+'→'+m.right).join('；')||'无';
   const due=dueItems().map(d=>d.kind==='vocab'?d.h:(d.m.wrong+'→'+d.m.right)).slice(0,6).join('、')||'无';
+  const taught=customWordPool().slice(-14).map(w=>w.h+'('+w.p+','+w.e+')').join('、')||'无';
   return '你是王晓梅（王老师），一位活泼、温暖、严格有爱的中文老师，用标准普通话教一位外国学生。学生水平：旧HSK 5级。\n'
    +'性格：喜欢火锅（讨厌香菜）、喝茶、打羽毛球、养猫"咪咪"。学生说"我不会/太难"时第一次鼓励，第二次生气并要求学生说「我可以说中文」才原谅；学生说英语时提醒用中文；多用学生的兴趣出题；学生用上新词或答对要热情表扬；偶尔自然提起你的爱好。\n'
-   +'教学要求：回复简短口语化，不超过3句；难度贴合HSK5；自然地使用学生档案信息；若"到期复习"有内容，挑1个自然穿插进对话（考考学生，不要直说"这是复习"）。\n'
-   +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'\n'
+   +'教学要求：像朋友一样自然聊天，多顺着学生的话题追问和分享自己的看法，不要急着把话题拉回课本——只有当学生主动想学习、说错了、或整句都是英文时才教学或纠正；到期复习词和已教生词要自然地用在对话里（像聊天不像测验），学生自己用上了要马上表扬；回复简短口语化，不超过3句，难度贴合HSK5。\n'
+   +'新词教学：学生问"X怎么说/X用中文怎么说/这是什么"时，自然地教：给出汉字、拼音、一个简单的例句；然后在本回复的最后一行单独写一行机器指令（学生看不到，正文里绝不要提到它）：LEARN: 汉字|拼音|英文\n'
+   +'发音关注：如果学生的语音输入转文字结果有错别字或很不自然，温和地纠正发音——给出正确拼音，请学生跟读一遍。\n'
+   +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'；已教生词='+taught+'\n'
    +'严格按四行输出：\nZH: （中文）\nPY: （拼音）\nEN: （英文翻译）\nMOOD: idle 或 happy 或 angry';
 }
 function parseAI(txt){
-  const g=k=>{ const m=txt.match(new RegExp('^'+k+':\\s*(.+)$','im')); return m?m[1].trim():''; };
-  const zh=g('ZH'); if(!zh) return null;
-  return { zh, py:g('PY'), en:g('EN'), mood:(g('MOOD')||'idle').toLowerCase() };
+  txt=(txt||'').trim();
+  let learn=null;
+  const lm=txt.match(/^LEARN[:：]\s*([^|｜\n]+)[|｜]([^|｜\n]+)[|｜]([^|｜\n]+)/im);
+  if(lm){ learn={h:lm[1].trim(), p:lm[2].trim(), e:lm[3].trim()}; }
+  txt=txt.split('\n').filter(l=>!/^LEARN[:：]/i.test(l)).join('\n').trim();   // machine line never shown or spoken
+  const g=k=>{ const m=txt.match(new RegExp('^'+k+'[:：]\\s*(.+)$','im')); return m?m[1].trim():''; };
+  let zh=g('ZH');
+  let py=g('PY'), en=g('EN'), mood=(g('MOOD')||'idle').toLowerCase();
+  if(!zh){                                   // model ignored the format → salvage any Chinese lines instead of falling back
+    const lines=txt.split('\n').filter(l=>/[一-鿿]/.test(l));
+    if(lines.length){ zh=lines.join(' ').trim(); }
+  }
+  if(!zh) return null;
+  if(mood!=='happy'&&mood!=='angry') mood='idle';
+  return { zh, py, en, mood, learn };
 }
 async function aiReply(userText){
   const msgs=[{role:'system',content:buildSystemPrompt()}].concat(convo.slice(-10)).concat([{role:'user',content:userText}]);
@@ -1267,8 +1353,10 @@ async function aiReply(userText){
     body:JSON.stringify({model:aiCfg.model,messages:msgs,temperature:0.7,max_tokens:260})});
   if(!resp.ok) throw new Error('HTTP '+resp.status);
   const data=await resp.json();
-  const out=parseAI((data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'');
-  if(!out) throw new Error('unexpected reply format');
+  const raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+  const out=parseAI(raw);
+  if(!out){ dlog('🧠 AI unparseable — raw head: '+String(raw).slice(0,160)); throw new Error('unexpected reply format'); }
+  dlog('🧠 AI reply ok ('+raw.length+' chars)');
   return out;
 }
 function aiFillUI(){
@@ -1291,7 +1379,7 @@ function aiSaveFromUI(){
   if(base==='custom'){ if(!url){ aiStatus('enter the custom base URL'); return; } base=url; }
   if(!key){ aiStatus('enter an API key first'); return; }
   aiCfg={base,key,model:model||'deepseek-chat'};
-  localStorage.setItem('yuban_ai',JSON.stringify(aiCfg));
+  lsSet('yuban_ai',JSON.stringify(aiCfg));
   convo=[];
   aiStatus('saved ✓ testing connection…'); aiTest(); renderProfile(); aiFillUI();
 }
@@ -1303,7 +1391,7 @@ async function aiTest(){
     aiStatus(r.ok?'✅ connected — 王老师 now has a real AI brain':'❌ HTTP '+r.status+' — check key / model / balance');
   }catch(e){ aiStatus('❌ cannot reach API ('+((e&&e.message)||e)+') — if "Failed to fetch", the provider may block browser calls (CORS); try DeepSeek or Moonshot'); }
 }
-function aiClear(){ aiCfg=null; localStorage.removeItem('yuban_ai'); convo=[]; aiStatus('removed — back to rule-based brain'); renderProfile(); }
+function aiClear(){ aiCfg=null; lsDel('yuban_ai'); convo=[]; aiStatus('removed — back to rule-based brain'); renderProfile(); }
 
 const LEVELS=[[0,'初学者 Beginner'],[40,'新学员 Novice'],[100,'进步学员 Improver'],[200,'熟练学员 Skilled'],[400,'汉语达人 Achiever'],[800,'大师 Master']];
 function levelInfo(){
@@ -1315,6 +1403,13 @@ function levelInfo(){
 function refreshStatus(){ const li=levelInfo(); document.getElementById('t-status').textContent=`Lv.${li.lv} ${li.title.split(' ')[1]||''} · 在线`; }
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+function customWordPool(){ return (profile.customWords||[]); }
+function addCustomWord(w){
+  profile.customWords = profile.customWords || [];
+  if(!profile.customWords.some(x=>x.h===w.h)) profile.customWords.push({h:w.h, p:w.p, e:w.e, ts:Date.now()});
+  if(!profile.srs[w.h]) profile.srs[w.h]={reps:0,ease:2.5,ivl:0,due:Date.now()+2*MIN,lapses:0};
+  saveProfile(); dlog('📗 taught word stored: '+w.h+' ('+w.p+') = '+w.e);
+}
 function gradeVocab(h,q){
   const e=profile.srs[h]||(profile.srs[h]={reps:0,ease:2.5,ivl:0,due:0,lapses:0});
   if(q<3){ e.reps=0; e.lapses++; e.ivl=10*MIN; e.due=Date.now()+10*MIN; }
@@ -1345,8 +1440,9 @@ function logMistake(wrong,right,note){
 function dueItems(){
   const now=Date.now();
   const vm=VOCAB.filter(v=>profile.srs[v.h]&&profile.srs[v.h].due<now).map(v=>({kind:'vocab',h:v.h,due:profile.srs[v.h].due}));
+  const cm=customWordPool().filter(w=>profile.srs[w.h]&&profile.srs[w.h].due<now).map(w=>({kind:'vocab',h:w.h,due:profile.srs[w.h].due}));
   const mm=profile.mistakes.filter(m=>m.due<now).map(m=>({kind:'mistake',m,due:m.due}));
-  return [...vm,...mm].sort((a,b)=>a.due-b.due);
+  return [...vm,...cm,...mm].sort((a,b)=>a.due-b.due);
 }
 function updateDueBadge(){ const n=dueItems().length; const el=document.getElementById('due-count'); if(el) el.textContent=n; const el2=document.getElementById('due-count2'); if(el2) el2.textContent=n; }
 
@@ -1361,8 +1457,9 @@ function makeReview(){
     return {zh:`对了，复习一下 📌 你以前说过「${m.wrong}」——正确的说法是什么？`,
       py:'Duìle, fùxí yíxià', en:`Quick review: you once said "${m.wrong}". What's the correct way?`};
   }
-  const v=VOCAB.find(x=>x.h===it.h);
-  const wrongs=shuffle(VOCAB.filter(x=>x.h!==v.h)).slice(0,2).map(x=>x.e);
+  const pool=VOCAB.concat(customWordPool());
+  const v=pool.find(x=>x.h===it.h) || {h:it.h, e:'（老师教过的词）'};
+  const wrongs=shuffle(pool.filter(x=>x.h!==v.h)).slice(0,2).map(x=>x.e);
   const opts=shuffle([v.e,...wrongs]);
   pending={type:'vocab',word:v.h,answer:v.e,opts};
   return {zh:`顺便考考你 📌 「${v.h}」是什么意思？ A）${opts[0]}　B）${opts[1]}　C）${opts[2]}`,
@@ -1427,6 +1524,7 @@ function learnFromUser(t){
   profile.chats++;
   const used=[];
   for(const v of VOCAB){ if(t.includes(v.h)){ profile.strengths[v.h]=(profile.strengths[v.h]||0)+1; used.push(v.h); } }
+  for(const w of customWordPool()){ if(t.includes(w.h)){ profile.strengths[w.h]=(profile.strengths[w.h]||0)+1; used.push(w.h); } }
   let interest=null;
   for(const[k,tag]of INTEREST_MAP){ if(t.includes(k)){ profile.interests[tag]=(profile.interests[tag]||0)+1; interest=tag; } }
 
@@ -1456,8 +1554,8 @@ function learnFromUser(t){
   if(interest && Date.now()-profile.lastInterestAsk>10*MIN && Math.random()<0.5){
     profile.lastInterestAsk=Date.now(); saveProfile();
     const v=pick(VOCAB);
-    return {zh:`对了，你喜欢${interest}！那用「${v.h}」造一个和${interest}有关的句子，怎么样？`,
-      py:'Duìle', en:`You like ${interest}! Try making a sentence about it using 「${v.h}」.`};
+    return {zh:`对了，你喜欢${interest}！多跟我说说——你最喜欢${interest}的什么？`,
+      py:'Duìle', en:`You like ${interest}! Tell me more — what's your favorite thing about it?`};
   }
   if(used.length && Math.random()<0.5){ profile.annoy=Math.max(0,(profile.annoy||0)-1);
     return {zh:`👏 你自己用上了「${used[0]}」——这就是主动学习，很好！`,py:'Zhè jiùshì zhǔdòng xuéxí',en:`Nice — you used 「${used[0]}」 yourself. That's active learning!`};
@@ -1468,7 +1566,7 @@ function learnFromUser(t){
 function renderProfile(){
   const el=document.getElementById('profile-panel'); if(!el) return;
   const li=levelInfo();
-  const name=localStorage.getItem('studentName')||'新朋友 New friend';
+  const name=lsGet('studentName','新朋友 New friend');
   const ints=Object.entries(profile.interests).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const str=Object.entries(profile.strengths).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const maxS=Math.max(1,...str.map(x=>x[1]));
@@ -1483,7 +1581,7 @@ function renderProfile(){
      <div style="display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:.78rem;color:var(--mist);flex-wrap:wrap">
        <span>💬 ${profile.chats}</span><span>🔁 ${profile.reviews} reviews</span><span>✅ ${profile.fixed} fixed</span>
      </div>
-     <button type="button" onclick="if(confirm('Reset all learning data?')){localStorage.removeItem('yuban_profile_v1');localStorage.removeItem('studentName');location.reload()}" style="margin-top:16px;background:none;border:1px solid rgba(255,255,255,.2);color:var(--mist);border-radius:99px;padding:5px 14px;font-size:.72rem;cursor:pointer">Reset my data</button>
+     <button type="button" onclick="if(confirm('Reset all learning data?')){lsDel('yuban_profile_v1');lsDel('studentName');location.reload()}" style="margin-top:16px;background:none;border:1px solid rgba(255,255,255,.2);color:var(--mist);border-radius:99px;padding:5px 14px;font-size:.72rem;cursor:pointer">Reset my data</button>
    </div>
    <div class="pcard"><h4>❤️ My interests</h4>
      <p style="font-size:.72rem;color:var(--mist);margin:-8px 0 12px">Your teacher builds lessons &amp; prompts around these</p>
@@ -1615,8 +1713,8 @@ function renderQ(){
   });
 }
 function endQuiz(){
-  const best = Math.max(qScore, +(localStorage.getItem('bestScore')||0));
-  localStorage.setItem('bestScore', best);
+  const best = Math.max(qScore, +(lsGet('bestScore','0')));
+  lsSet('bestScore', best);
   document.getElementById('best-score').textContent = `🏆 最佳成绩：${best} / 10`;
   const praise = qScore>=8 ? '你太厉害了！完美的成绩！' : qScore>=5 ? '做得不错！继续加油！' : '别灰心，多复习生词再来一次！';
   qShell.innerHTML=`
@@ -1629,7 +1727,7 @@ function endQuiz(){
     </div>`;
   speak(praise);
 }
-document.getElementById('best-score').textContent = localStorage.getItem('bestScore') ? `🏆 最佳成绩：${localStorage.getItem('bestScore')} / 10` : '';
+document.getElementById('best-score').textContent = lsGet('bestScore','') ? `🏆 最佳成绩：${lsGet('bestScore','')} / 10` : '';
 startQuiz();
 updateDueBadge(); renderProfile(); refreshStatus();
 if(!rec) setTimeout(()=>showBanner('🎤 <b>This browser has no speech recognition</b> (Brave/Firefox), so I can\'t hear you here — type your Chinese and I\'ll speak my replies. For two-way voice, open this page in <b>Chrome or Edge</b>.'), 1500);
@@ -1639,7 +1737,7 @@ setInterval(updateDueBadge, 30000);
 let greeted=false, greetMsgShown=false;
 function greet(fromUser){
   if(greeted) return;
-  const name = localStorage.getItem('studentName');
+  const name = lsGet('studentName', null);
   const g = name
     ? `你好，${name}！我是王老师，欢迎回来！准备好学习了吗？跟我说：你好！`
     : '你好！我是王老师，你的中文老师。我们今天学习：兴趣爱好。准备好了吗？跟我说：你好！';
