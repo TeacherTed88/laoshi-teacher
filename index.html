@@ -334,7 +334,10 @@ button{touch-action:manipulation;}
 /* big centered mic */
 #whatsay{display:block;margin:12px auto 0;background:#efe7ff;border:1px solid #d5c6ff;color:#6d4df2;font-family:inherit;font-size:.88rem;font-weight:600;padding:9px 22px;border-radius:99px;cursor:pointer;transition:.2s;}
 #whatsay:hover{background:#e2d4ff;}
-.mic-row{display:flex;justify-content:center;padding:14px 0 18px;background:#f6f0e2;}
+.mic-row{display:flex;justify-content:center;padding:14px 0 18px;background:#f6f0e2;position:sticky;bottom:0;z-index:6;}   /* pinned: layout reflows can't move it from under the thumb */
+.chat-input{position:sticky;bottom:0;z-index:6;}
+#live-hear{position:sticky;bottom:0;z-index:6;}
+body.talking{overflow:hidden;}   /* no page scroll / toolbar collapse while holding the mic */
 .mic-row .mic-btn{width:86px;height:86px;font-size:2rem;box-shadow:0 10px 26px rgba(200,54,27,.5);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 /* lesson card strip */
 .card-strip{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 18px;scrollbar-width:none;}
@@ -1175,6 +1178,7 @@ function beginTalking(){
   }
   if(recording) return;
   recording=true; recStarted=false; interruptFired=false;
+  document.body.classList.add('talking');
   if(rec) rec.lang=recLang;
   if(rec._reset) rec._reset();
   document.getElementById('chat-text').value='';
@@ -1187,6 +1191,7 @@ function beginTalking(){
       dlog('🎙 getUserMedia OK — mic alive, volume meter running');
     }catch(err){
       if(!recording) return;
+      document.body.classList.remove('talking');
       recording=false; micBtn.classList.remove('recording'); stopMeter();
       micState.textContent = err && err.name==='NotAllowedError'
         ? '🔒 Permission denied → lock icon by the URL → Site settings → Microphone → Allow → reload'
@@ -1194,7 +1199,7 @@ function beginTalking(){
       dlog('🎙 getUserMedia FAILED: '+((err&&err.name)||err));
       return;
     }
-    if(!recording){ stopMeter(); dlog('🎙 released before mic was ready — canceled'); return; }
+    if(!recording){ stopMeter(); document.body.classList.remove('talking'); dlog('🎙 released before mic was ready — canceled'); return; }
     micBtn.classList.add('recording');
     killSpeech();                                     // she yields the floor instantly
     setMood('listening');
@@ -1207,6 +1212,7 @@ function beginTalking(){
   })();
 }
 function endTalking(reason){
+  document.body.classList.remove('talking');
   if(!recording) return;                              // nothing to stop
   if(reason==='correction') interruptCorrection=true;
   if(!recStarted){                                    // released before the engine started → cancel cleanly
