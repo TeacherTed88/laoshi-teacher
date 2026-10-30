@@ -335,7 +335,7 @@ button{touch-action:manipulation;}
 #whatsay{display:block;margin:12px auto 0;background:#efe7ff;border:1px solid #d5c6ff;color:#6d4df2;font-family:inherit;font-size:.88rem;font-weight:600;padding:9px 22px;border-radius:99px;cursor:pointer;transition:.2s;}
 #whatsay:hover{background:#e2d4ff;}
 .mic-row{display:flex;justify-content:center;padding:14px 0 18px;background:#f6f0e2;}
-.mic-row .mic-btn{width:86px;height:86px;font-size:2rem;box-shadow:0 10px 26px rgba(200,54,27,.5);}
+.mic-row .mic-btn{width:86px;height:86px;font-size:2rem;box-shadow:0 10px 26px rgba(200,54,27,.5);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 /* lesson card strip */
 .card-strip{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 18px;scrollbar-width:none;}
 .card-strip::-webkit-scrollbar{display:none;}
@@ -373,6 +373,8 @@ button{touch-action:manipulation;}
 #user-chip{background:rgba(247,242,232,.08);border:1px solid rgba(201,162,39,.4);color:var(--gold);border-radius:99px;padding:8px 13px;font-size:.82rem;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
 #user-chip:hover{background:rgba(201,162,39,.18);}
 @media(max-width:700px){#user-chip{padding:6px 9px;font-size:.72rem;max-width:76px;}}
+.cam-btn{width:48px;height:48px;border-radius:50%;border:1px solid #ddd2ba;background:#fff;font-size:1.15rem;cursor:pointer;flex-shrink:0;transition:.2s;}
+.cam-btn:hover{border-color:var(--gold);transform:scale(1.06);}
 footer{text-align:center;padding:60px 24px 40px;color:var(--mist);font-size:.82rem;position:relative;z-index:2;}
 footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red);border-radius:10px;display:grid;place-items:center;color:#fff;font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.4rem;box-shadow:0 8px 24px rgba(200,54,27,.4);}
 </style>
@@ -595,7 +597,7 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
 </g></g>
 </svg></div>
   <div class="stage-name">王晓梅 <small>王老师 · Teacher Wang</small></div>
-  <div class="stage-pill mic-state" id="mic-state">🎤 Tap the mic below to speak</div>
+  <div class="stage-pill mic-state" id="mic-state">🎤 Hold the mic to talk, release to send · 按住说话，松开发送</div>
   <div class="stage-pill" id="t-status" style="margin-top:6px">准备就绪 · Ready</div>
 </div>
 <div id="chat-log" role="log" aria-live="polite" aria-label="conversation with Teacher Wang"></div>
@@ -610,9 +612,11 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
     </div>
     <div id="live-hear"><span class="volbar"><i></i><i></i><i></i><i></i><i></i><i></i></span><span id="live-hear-text"></span><span id="live-caret">▌</span></div>
 <div class="chat-input">
+      <button type="button" id="camera-btn" class="cam-btn" title="拍课本 · photograph your textbook" aria-label="photograph textbook for the teacher to read">📷</button>
       <input id="chat-text" type="text" placeholder="Type in Chinese or English…" autocomplete="off">
       <button type="button" class="send-btn" id="send-btn" title="发送">➤</button>
     </div>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none">
     <button type="button" id="whatsay">💡 What to say?</button>
     <div class="mic-row"><button type="button" class="mic-btn" id="mic-btn" title="tap to speak · 点我说话">🎤</button></div>
   </div>
@@ -888,9 +892,11 @@ function teacherReply(text){
     let r=null;
     if(aiCfg && aiCfg.key && !pending){          // AI brain takes the wheel (mechanical SRS grading still handled by rule brain)
       tStatus.textContent='王老师 is thinking…';
-      try{ r = await aiReply(text); dlog('🧠 AI reply ok'); }
+      const nudgedText = interruptCorrection ? '（学生刚才说的中文有明显错误，请先简短纠正这个错误并给出正确说法，然后自然继续对话）\n'+text : text;
+      try{ r = await aiReply(nudgedText); dlog('🧠 AI reply ok'); }
       catch(e){ dlog('🧠 AI failed: '+((e&&e.message)||e)+' → rule brain'); r=null; }
     }
+    interruptCorrection=false;
     if(!r) r = brain(text);
     if(r.learn) addCustomWord(r.learn);
     convo.push({role:'user',content:text},{role:'assistant',content:r.zh});
@@ -1041,7 +1047,7 @@ document.querySelectorAll('.suggest').forEach(b=>b.onclick=()=>send(b.textConten
 const micBtn = document.getElementById('mic-btn');
 const micState = document.getElementById('mic-state');
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[];
+let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[], interruptFired=false, interruptCorrection=false;
 if(SR){
   rec = new SR(); rec.lang='zh-CN'; rec.interimResults=true; rec.maxAlternatives=1;
   let finalT='';
@@ -1055,14 +1061,25 @@ if(SR){
       if(e.results[i].isFinal) finalT += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    document.getElementById('chat-text').value = finalT + interim;
-    hearShow(finalT + interim, finalT ? 'final' : '');
+    const heardSoFar = finalT + interim;
+    document.getElementById('chat-text').value = heardSoFar;
+    hearShow(heardSoFar, finalT ? 'final' : '');
     if(interim) dlog('🎙 interim: "'+interim.slice(0,30)+'"');
+    // interrupt-on-error: she cuts in mid-sentence if what she hears is clearly broken
+    if(!interruptFired && heardSoFar.trim().length>=4){
+      const problem = detectPoorChinese(heardSoFar);
+      if(problem){
+        interruptFired=true;
+        dlog('⚠️ interrupting to correct: '+problem);
+        hearShow('✋ 停一下——这里有个错误 · hold on, let me correct you','err');
+        setTimeout(()=>endTalking('correction'), 400);
+      }
+    }
   };
   let lastRecError=false;
   rec.onend = ()=>{
     recording=false; micBtn.classList.remove('recording');
-    micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Tap the mic to speak';
+    micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Hold to talk · 按住说话';
     const v=document.getElementById('chat-text').value.trim();
     stopMeter(); setMood('idle');
     if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); }
@@ -1072,6 +1089,12 @@ if(SR){
     if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb,h.onChunk), 350); dlog('🔊 teacher speaks her held reply'); }
     lastRecError=false;
     dlog('🎙 rec.onend');
+  };
+  /* conservative local screen: only flags CLEARLY broken Chinese so she never cuts off good speech */
+  window.detectPoorChinese = function(txt){
+    if(/[a-zA-Z]{2,}/.test(txt) && /[一-鿿]/.test(txt)) return 'mixed-english';
+    if(/我是很/.test(txt)) return 'grammar-wo-shi-hen';
+    return null;
   };
   rec.onerror = (e)=>{
     recording=false; micBtn.classList.remove('recording');
@@ -1139,35 +1162,27 @@ function stopMeter(){
   if(meterStream){ meterStream.getTracks().forEach(t=>t.stop()); meterStream=null; }
   if(meterCtx){ meterCtx.close().catch(()=>{}); meterCtx=null; }
 }
-micBtn.onclick=()=>{
+/* hold-to-talk: press & hold the mic while speaking, release to stop & send */
+function beginTalking(){
   if(!rec){
     micState.textContent='⚠️ No speech recognition here';
-    showBanner('🎤 <b>This browser has no speech recognition.</b> Tap the text box and use your <b>keyboard\'s 🎤 dictation</b> (iFlytek/Baidu) — I\'ll hear you that way. Built-in mic needs Chrome/Edge reaching Google.');
+    showBanner('🎤 <b>This browser has no speech recognition.</b> Hold the keyboard\'s 🎤 to dictate (iFlytek/Baidu) — I\'ll hear you that way. Built-in mic needs Chrome/Edge reaching Google.');
     const inp=document.getElementById('chat-text'); inp.focus();
     return;
   }
-  if(recording){                                   // SECOND TAP = stop & deliver, always
-    dlog('🎙 manual stop — delivering what was heard');
-    micState.textContent='🎤 delivering…';
-    recording=false; recStarted=false;
-    micBtn.classList.remove('recording');
-    stopMeter(); setMood('idle');
-    try{ rec.stop(); }catch(e){ finishRec(); }      // onend fires → send; if stop throws, finish manually
-    return;
-  }
-  // FIRST TAP — claim the mic state IMMEDIATELY so rapid double-taps toggle instead of doubling
-  recording=true; recStarted=false;
+  if(recording) return;
+  recording=true; recStarted=false; interruptFired=false;
   if(rec._reset) rec._reset();
   document.getElementById('chat-text').value='';
   micState.textContent='🎙 requesting microphone…';
   (async()=>{
     try{
-      const st=await navigator.mediaDevices.getUserMedia({audio:true});
-      meterStream=st; startMeter(st);
-      hearShow('speak now… 请说中文','');
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      meterStream=stream; startMeter(stream);
+      hearShow('speak… I\'m listening · 请说中文','');
       dlog('🎙 getUserMedia OK — mic alive, volume meter running');
     }catch(err){
-      if(!recording) return;                        // canceled while the permission prompt was up
+      if(!recording) return;
       recording=false; micBtn.classList.remove('recording'); stopMeter();
       micState.textContent = err && err.name==='NotAllowedError'
         ? '🔒 Permission denied → lock icon by the URL → Site settings → Microphone → Allow → reload'
@@ -1175,17 +1190,36 @@ micBtn.onclick=()=>{
       dlog('🎙 getUserMedia FAILED: '+((err&&err.name)||err));
       return;
     }
-    if(!recording){ stopMeter(); dlog('🎙 start canceled while awaiting mic'); return; }
+    if(!recording){ stopMeter(); dlog('🎙 released before mic was ready — canceled'); return; }
     micBtn.classList.add('recording');
-    killSpeech();                                     // hard-kill mid-word: chain invalidated, jabber stopped
+    killSpeech();                                     // she yields the floor instantly
     setMood('listening');
-    micState.textContent='🔴 Listening… tap the mic again to stop & send · 请说中文';
-    addMsg('sys','🎤 我在听… tap the mic again to stop & send');
-    try{ rec.start(); recStarted=true;
+    micState.textContent='🔴 Listening… release to send · 松开手指发送';
+    addMsg('sys','🎤 listening… release to send · 松开手指发送');
+    try{
+      rec.start(); recStarted=true;
       setTimeout(()=>{ if(recording && recStarted){ dlog('🎙 auto-stop after 45s'); try{ rec.stop(); }catch(e){} } },45000);
     }catch(e){ recording=false; recStarted=false; micBtn.classList.remove('recording'); micState.textContent='⚠️ '+e.message; }
   })();
-};
+}
+function endTalking(reason){
+  if(!recording) return;                              // nothing to stop
+  if(reason==='correction') interruptCorrection=true;
+  if(!recStarted){                                    // released before the engine started → cancel cleanly
+    recording=false; micBtn.classList.remove('recording'); stopMeter(); setMood('idle');
+    micState.textContent='🎤 hold to talk · 按住说话';
+    return;
+  }
+  dlog('🎙 released — delivering what was heard');
+  micState.textContent='🎤 delivering…';
+  recording=false; recStarted=false;
+  micBtn.classList.remove('recording');
+  stopMeter(); setMood('idle');
+  try{ rec.stop(); }catch(e){ finishRec(); }          // onend fires → send; if stop throws, finish manually
+}
+micBtn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); beginTalking(); });
+['pointerup','pointercancel','pointerleave'].forEach(ev=>micBtn.addEventListener(ev, endTalking));
+micBtn.addEventListener('contextmenu', (e)=>e.preventDefault());   // long-press must not open the menu
 /* manual finish fallback if rec.stop() never answers */
 const normTxt=x=>x.replace(/[\s,."':;!?。，！？：；、「」『』——…·\-~～()（）]/g,'');
 function isEcho(v){
@@ -1196,7 +1230,7 @@ function isEcho(v){
 function finishRec(){
   const v=document.getElementById('chat-text').value.trim();
   stopMeter(); setMood('idle');
-  micState.textContent='🎤 Tap the mic to speak';
+  micState.textContent='🎤 Hold to talk · 按住说话';
   if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); hearHide(2600); return; }
   if(v){ hearShow('✓ heard: '+v,'final'); send(v); } else { hearShow('🤷 heard nothing — try again','err'); }
   hearHide(2600);
@@ -1296,6 +1330,77 @@ let profile = JSON.parse(lsGet('yuban_profile_v1','null')) || {
 };
 let pending=null;
 function saveProfile(){ lsSet('yuban_profile_v1', JSON.stringify(profile)); updateDueBadge(); renderProfile(); refreshStatus(); }
+/* 📷 textbook photo → vision model → she transcribes, translates, reads aloud */
+function visionSystemPrompt(){
+  return '你是王晓梅，一位中文老师。学生发来一张中文课本照片。严格按四行格式回复：\nZH: （先准确转写课文原文；空一行；然后用简短括号给出带读提示：难词注音、停顿；最后邀请学生一句一句跟读）\nPY: （整段拼音）\nEN: （整段英文翻译）\nMOOD: idle\n要求：忠实转写原文；语气温暖；一定邀请学生跟读。';
+}
+function fileToCompressedDataUrl(file, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{ try{
+      const scale=Math.min(1, maxDim/Math.max(img.width,img.height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(img.width*scale));
+      canvas.height=Math.max(1,Math.round(img.height*scale));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      resolve(canvas.toDataURL('image/jpeg',quality));
+    }catch(err){ reject(err); } };
+    img.onerror=reject;
+    img.src=URL.createObjectURL(file);
+  });
+}
+async function handleTextbookPhoto(dataUrl){
+  addMsg('user','📷 [课本照片 · textbook photo]');
+  document.getElementById('t-status').textContent='王老师 is reading your textbook… 📖';
+  try{
+    const resp=await fetch(aiCfg.base.replace(/\/+$/,'')+'/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+aiCfg.key},
+      body:JSON.stringify({
+        model: aiCfg.vision||'moonshot-v1-8k-vision-preview',
+        temperature:0.4, max_tokens:900,
+        messages:[
+          {role:'system', content:visionSystemPrompt()},
+          {role:'user', content:[
+            {type:'text', text:'这是我的课本照片，请帮我转写、翻译，并带我读。'},
+            {type:'image_url', image_url:{url:dataUrl}}
+          ]}
+        ]
+      })});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    const raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+    const r=parseAI(raw)||{zh:String(raw).trim(),py:'',en:'',mood:'idle'};
+    if(r.learn) addCustomWord(r.learn);
+    convo.push({role:'assistant', content:r.zh});
+    const liveMsg=addMsgLive();
+    speak(r.zh, ()=>{ liveMsg.finish(r); if(r.mood&&r.mood!=='idle'){ setMood(r.mood); setTimeout(()=>{ if(getMood()===r.mood) setMood('idle'); },2600); } },
+      (idx,chunk)=>liveMsg.appendChunk(chunk, idx));
+  }catch(err){
+    dlog('📷 vision failed: '+((err&&err.message)||err));
+    const sorry={zh:'哎呀，我看不清这张照片。光线亮一点、对准课文再试一次？如果一直不行，检查一下 AI Brain 里的视觉模型设置。',py:'Ai-ya',en:'I could not read that photo — try brighter light and aim at the text, or check the vision model in AI Brain.'};
+    addMsg('teacher', sorry.zh, sorry.py, sorry.en, null);
+    speak(sorry.zh);
+  }
+  refreshStatus();
+}
+document.getElementById('camera-btn').onclick=()=>{
+  if(!aiCfg||!aiCfg.key||!aiCfg.vision){
+    showBanner('📷 <b>拍课本需要一个会看图的模型。</b>让朋友到 platform.moonshot.cn 开一个 Kimi key（跟 DeepSeek 一样的方式），然后在 AI Brain 里：base 填 <b>https://api.moonshot.cn/v1</b>，视觉模型填 <b>moonshot-v1-8k-vision-preview</b>。DeepSeek 的 key 看不了图片。');
+    return;
+  }
+  document.getElementById('photo-input').click();
+};
+document.getElementById('photo-input').addEventListener('change', async (e)=>{
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  try{
+    const dataUrl=await fileToCompressedDataUrl(file, 1024, 0.8);
+    dlog('📷 photo ready ('+Math.round(dataUrl.length/1024)+'KB) — sending to vision model');
+    handleTextbookPhoto(dataUrl);
+  }catch(err){ dlog('📷 image processing failed: '+((err&&err.message)||err)); }
+});
 document.getElementById('user-chip').onclick=showUserPicker;
 document.getElementById('add-user').onclick=()=>{
   const name=(prompt('新学员的名字 / New learner name:')||'').trim(); if(!name) return;
@@ -1365,6 +1470,7 @@ function aiFillUI(){
   if(!b) return;
   const isCustom=![...b.options].some(o=>o.value===aiCfg.base); b.value=isCustom?'custom':aiCfg.base;
   if(k) k.value=aiCfg.key; if(m) m.value=aiCfg.model;
+  const vis=document.getElementById('ai-vision'); if(vis&&aiCfg.vision) vis.value=aiCfg.vision;
   if(isCustom){ u.style.display='block'; }
   if(u&&aiCfg.base&&![...b.options].some(o=>o.value===aiCfg.base)) u.value=aiCfg.base;
   if(u&&aiCfg.base&&!/[...]/.test('')){}
@@ -1378,7 +1484,8 @@ function aiSaveFromUI(){
   const url=document.getElementById('ai-url').value.trim();
   if(base==='custom'){ if(!url){ aiStatus('enter the custom base URL'); return; } base=url; }
   if(!key){ aiStatus('enter an API key first'); return; }
-  aiCfg={base,key,model:model||'deepseek-chat'};
+  const vision=(document.getElementById('ai-vision')||{}).value||'';
+  aiCfg={base,key,model:model||'deepseek-chat',vision:vision.trim()};
   lsSet('yuban_ai',JSON.stringify(aiCfg));
   convo=[];
   aiStatus('saved ✓ testing connection…'); aiTest(); renderProfile(); aiFillUI();
@@ -1606,6 +1713,7 @@ function renderProfile(){
   +'<input id="ai-url" placeholder="custom base URL, e.g. https://api.deepseek.com/v1" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem;display:none">'
   +'<input id="ai-key" type="password" placeholder="API key (sk-…)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ai-model" placeholder="model: deepseek-chat / moonshot-v1-8k / gpt-4o-mini" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<input id="ai-vision" placeholder="vision model (optional, for 📷 textbook): moonshot-v1-8k-vision-preview" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="nav-btn" onclick="aiSaveFromUI()">💾 Save</button><button type="button" class="nav-btn" onclick="aiTest()">🔌 Test</button><button type="button" class="nav-btn" onclick="aiClear()" style="opacity:.7">Remove</button></div>'
   +'<div id="ai-status" style="font-size:.74rem;margin-top:8px;color:var(--mist)">'+(aiCfg&&aiCfg.key?('configured: '+aiCfg.base+' · '+aiCfg.model):'')+'</div></div>' ;
   aiFillUI();
