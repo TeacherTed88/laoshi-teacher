@@ -375,6 +375,8 @@ button{touch-action:manipulation;}
 @media(max-width:700px){#user-chip{padding:6px 9px;font-size:.72rem;max-width:76px;}}
 .cam-btn{width:48px;height:48px;border-radius:50%;border:1px solid #ddd2ba;background:#fff;font-size:1.15rem;cursor:pointer;flex-shrink:0;transition:.2s;}
 .cam-btn:hover{border-color:var(--gold);transform:scale(1.06);}
+.lang-toggle{background:#fff;border:1px solid #ddd2ba;border-radius:99px;color:#6d6350;font-family:inherit;font-size:.72rem;font-weight:700;padding:6px 10px;cursor:pointer;flex-shrink:0;}
+.lang-toggle:hover{border-color:var(--gold);color:var(--red-d);}
 footer{text-align:center;padding:60px 24px 40px;color:var(--mist);font-size:.82rem;position:relative;z-index:2;}
 footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red);border-radius:10px;display:grid;place-items:center;color:#fff;font-family:'Noto Serif SC',serif;font-weight:900;font-size:1.4rem;box-shadow:0 8px 24px rgba(200,54,27,.4);}
 </style>
@@ -610,7 +612,7 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
       <button type="button" class="suggest">跟我练习对话</button>
       <button type="button" class="suggest">我有个问题</button>
     </div>
-    <div id="live-hear"><span class="volbar"><i></i><i></i><i></i><i></i><i></i><i></i></span><span id="live-hear-text"></span><span id="live-caret">▌</span></div>
+    <div id="live-hear"><button type="button" id="lang-toggle" class="lang-toggle" title="speech recognition language · 识别语言">🌐 中</button><span class="volbar"><i></i><i></i><i></i><i></i><i></i><i></i></span><span id="live-hear-text"></span><span id="live-caret">▌</span></div>
 <div class="chat-input">
       <button type="button" id="camera-btn" class="cam-btn" title="拍课本 · photograph your textbook" aria-label="photograph textbook for the teacher to read">📷</button>
       <input id="chat-text" type="text" placeholder="Type in Chinese or English…" autocomplete="off">
@@ -1048,6 +1050,7 @@ const micBtn = document.getElementById('mic-btn');
 const micState = document.getElementById('mic-state');
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[], interruptFired=false, interruptCorrection=false;
+let recLang = lsGet('recLang','zh-CN');   // 'zh-CN' or 'en-US' — tap 🌐 on the hearing bar to switch
 if(SR){
   rec = new SR(); rec.lang='zh-CN'; rec.interimResults=true; rec.maxAlternatives=1;
   let finalT='';
@@ -1172,6 +1175,7 @@ function beginTalking(){
   }
   if(recording) return;
   recording=true; recStarted=false; interruptFired=false;
+  if(rec) rec.lang=recLang;
   if(rec._reset) rec._reset();
   document.getElementById('chat-text').value='';
   micState.textContent='🎙 requesting microphone…';
@@ -1179,7 +1183,7 @@ function beginTalking(){
     try{
       const stream=await navigator.mediaDevices.getUserMedia({audio:true});
       meterStream=stream; startMeter(stream);
-      hearShow('speak… I\'m listening · 请说中文','');
+      hearShow(recLang==='en-US' ? 'speak English… I\'m listening 🌐EN' : 'speak… I\'m listening · 请说中文','');
       dlog('🎙 getUserMedia OK — mic alive, volume meter running');
     }catch(err){
       if(!recording) return;
@@ -1384,6 +1388,16 @@ async function handleTextbookPhoto(dataUrl){
   }
   refreshStatus();
 }
+const langToggle=document.getElementById('lang-toggle');
+function paintLangToggle(){ langToggle.textContent = recLang==='en-US' ? '🌐 EN' : '🌐 中'; }
+langToggle.onclick=()=>{
+  recLang = (recLang==='en-US') ? 'zh-CN' : 'en-US';
+  lsSet('recLang', recLang);
+  paintLangToggle();
+  if(recording) hearShow(recLang==='en-US' ? 'speak English… 🌐EN' : '请说中文… 🌐中','');
+  dlog('🌐 recognition language → '+recLang);
+};
+paintLangToggle();
 document.getElementById('camera-btn').onclick=()=>{
   if(!aiCfg||!aiCfg.key||!aiCfg.vision){
     showBanner('📷 <b>拍课本需要一个会看图的模型。</b>让朋友到 platform.moonshot.cn 开一个 Kimi key（跟 DeepSeek 一样的方式），然后在 AI Brain 里：base 填 <b>https://api.moonshot.cn/v1</b>，视觉模型填 <b>moonshot-v1-8k-vision-preview</b>。DeepSeek 的 key 看不了图片。');
@@ -1430,6 +1444,7 @@ function buildSystemPrompt(){
    +'教学要求：像朋友一样自然聊天，多顺着学生的话题追问和分享自己的看法，不要急着把话题拉回课本——只有当学生主动想学习、说错了、或整句都是英文时才教学或纠正；到期复习词和已教生词要自然地用在对话里（像聊天不像测验），学生自己用上了要马上表扬；回复简短口语化，不超过3句，难度贴合HSK5。\n'
    +'新词教学：学生问"X怎么说/X用中文怎么说/这是什么"时，自然地教：给出汉字、拼音、一个简单的例句；然后在本回复的最后一行单独写一行机器指令（学生看不到，正文里绝不要提到它）：LEARN: 汉字|拼音|英文\n'
    +'发音关注：如果学生的语音输入转文字结果有错别字或很不自然，温和地纠正发音——给出正确拼音，请学生跟读一遍。\n'
+   +'中英混说：学生经常中文里夹英文单词，语音转写会把英文音译成奇怪的汉字（如 bicycle 可能被转成"白西克"、telephone 变成"泰勒风"）。你要自动还原本意，像真正的老师一样先温和地确认：「你是想说自行车吗？」，得到语境后自然地教这个词（汉字+拼音+一个例句），然后正常继续对话，不要小题大做。\n'
    +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'；已教生词='+taught+'\n'
    +'严格按四行输出：\nZH: （中文）\nPY: （拼音）\nEN: （英文翻译）\nMOOD: idle 或 happy 或 angry';
 }
