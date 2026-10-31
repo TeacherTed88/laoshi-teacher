@@ -1180,6 +1180,9 @@ function beginTalking(){
   if(recording) return;
   recording=true; recStarted=false; interruptFired=false;
   document.body.classList.add('talking');
+  micBtn.classList.add('recording');               // INSTANT feedback: every press visibly registers, before any async work
+  hearShow('🎙 requesting mic… 请求麦克风','');
+  dlog('🎙 press registered');
   if(rec) rec.lang=recLang;
   if(rec._reset) rec._reset();
   document.getElementById('chat-text').value='';
@@ -1194,9 +1197,11 @@ function beginTalking(){
       if(!recording) return;
       document.body.classList.remove('talking');
       recording=false; micBtn.classList.remove('recording'); stopMeter();
-      micState.textContent = err && err.name==='NotAllowedError'
+      const denied = err && err.name==='NotAllowedError';
+      micState.textContent = denied
         ? '🔒 Permission denied → lock icon by the URL → Site settings → Microphone → Allow → reload'
         : '🎤 Mic busy/missing — close apps using it';
+      if(denied) showBanner('🔒 <b>麦克风权限被阻止了 / Mic permission blocked.</b> Chrome may have reset it after an update. Fix: tap the 🔒 icon left of the address bar → Site settings → Microphone → <b>Allow</b> → reload this page.');
       dlog('🎙 getUserMedia FAILED: '+((err&&err.name)||err));
       return;
     }
@@ -1231,6 +1236,8 @@ function endTalking(reason){
 micBtn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); beginTalking(); });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>micBtn.addEventListener(ev, endTalking));
 micBtn.addEventListener('contextmenu', (e)=>e.preventDefault());   // long-press must not open the menu
+micBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); beginTalking(); }, {passive:false});   // fallback for pointer-event flakiness
+micBtn.addEventListener('touchend',   (e)=>{ e.preventDefault(); endTalking(); }, {passive:false});
 /* manual finish fallback if rec.stop() never answers */
 const normTxt=x=>x.replace(/[\s,."':;!?。，！？：；、「」『』——…·\-~～()（）]/g,'');
 function isEcho(v){
