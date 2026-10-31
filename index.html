@@ -905,8 +905,10 @@ function teacherReply(text){
     interruptCorrection=false;
     if(!r) r = brain(text);
     if(r.learn) addCustomWord(r.learn);
+    if(r.facts && r.facts.length){ profile.facts=profile.facts||{}; r.facts.forEach(f=>{ profile.facts[f.k]=f.v; }); saveProfile(); dlog('🧠 facts stored: '+r.facts.map(f=>f.k+'='+f.v).join(', ')); }
     convo.push({role:'user',content:text},{role:'assistant',content:r.zh});
     if(convo.length>24) convo.splice(0,convo.length-24);
+    lsSet('convo', JSON.stringify(convo));
     const extra = learnFromUser(text, r);
     if(extra){ r = {zh:r.zh+' '+extra.zh, py:(r.py?r.py+' ':'')+(extra.py||''), en:(r.en?r.en+' ':'')+(extra.en||''), fix:r.fix}; }
     if(!extra && !aiCfg && Math.random()<0.12){ r = {zh:r.zh+' '+pick(CHIT_CHAT), py:r.py, en:r.en, fix:r.fix}; }
@@ -928,6 +930,15 @@ function personalityBrain(t){
   profile.annoy = profile.annoy||0;
   if(/对不起|抱歉|sorry/i.test(t)){ profile.annoy=0; saveProfile(); setMood('happy');
     return {zh:'没关系！我知道学习不容易。你能道歉，说明你很有礼貌——这一点我很喜欢。我们继续吧！😊', py:'Méi guānxi!', en:'Apology accepted — good manners! Let\'s continue.'}; }
+  if(/我多大了|我的年龄|我几岁|今年几岁/.test(t)){
+    if(profile.facts&&profile.facts['年龄']){ return {zh:`你今年${profile.facts['年龄']}呀！我记着呢，怎么会忘？😊 对了，你最近怎么样？`, py:'Wǒ jìzhe ne!', en:'Of course I remember — you are '+profile.facts['年龄']+'. How have you been?'}; }
+    return {zh:'嗯……你还没告诉我你多大呢。你今年几岁？告诉我，我就记住！', py:'Nǐ jǐ suì?', en:'You haven\'t told me your age yet — how old are you? Tell me and I\'ll remember it!'};
+  }
+  if(/我叫什么|我是谁/.test(t)){
+    const nm=lsGet('studentName','');
+    if(nm) return {zh:`你是${nm}呀！我记性很好的。😊`, py:'Nǐ shì ${nm} ya!', en:'You are ${nm} — I remember you well!'};
+    return {zh:'你还没告诉我名字呢！跟我说「我叫XXX」，我就记住你。', py:'', en:'Tell me your name — say 我叫... and I\'ll remember you!'};
+  }
   if(/你叫什么|你的名字/.test(t)){
     return {zh:'我叫王晓梅，但是大家都叫我王老师。你呢？你告诉我名字，我就记住你！', py:'Wǒ jiào Wáng Xiǎoméi', en:'I\'m Wang Xiaomei — everyone calls me Teacher Wang. And you?'}; }
   if(/你喜欢什么|你的爱好|你讨厌|你不喜欢|关于你|你呢/.test(t)){
@@ -1457,7 +1468,9 @@ if(!rec) setTimeout(()=>showBanner('🎤 <b>This browser has no speech recogniti
 VOCAB.forEach(v=>{ if(!profile.srs[v.h]) profile.srs[v.h]={reps:0,ease:2.5,ivl:0,due:Date.now()+3*MIN,lapses:0}; });
 
 /* =============== AI brain (optional LLM) =============== */
-let aiCfg=null, convo=[];
+let aiCfg=null;
+let convo=[];
+try{ convo=JSON.parse(lsGet('convo','[]'))||[]; }catch(e){ convo=[]; }   // conversation persists across sessions, per user
 try{ aiCfg=JSON.parse(lsGet('yuban_ai','null')); }catch(e){}
 function buildSystemPrompt(){
   const name=lsGet('studentName','未知');
@@ -1466,21 +1479,31 @@ function buildSystemPrompt(){
   const mis=profile.mistakes.slice(0,5).map(m=>m.wrong+'→'+m.right).join('；')||'无';
   const due=dueItems().map(d=>d.kind==='vocab'?d.h:(d.m.wrong+'→'+d.m.right)).slice(0,6).join('、')||'无';
   const taught=customWordPool().slice(-14).map(w=>w.h+'('+w.p+','+w.e+')').join('、')||'无';
+  const factsLine=Object.entries(profile.facts||{}).map(([k,v])=>k+'='+v).join('；')||'无';
+  const recentSaid=convo.filter(m=>m.role==='assistant').slice(-4).map(m=>m.content.slice(0,50)).join(' ⏐ ')||'无';
+  const weakWords=VOCAB.concat(customWordPool()).filter(w=>profile.srs[w.h]&&profile.srs[w.h].lapses>0).map(w=>w.h).join('、')||'无';
   return '你是王晓梅（王老师），一位活泼、温暖、严格有爱的中文老师，用标准普通话教一位外国学生。学生水平：旧HSK 5级。\n'
    +'性格：喜欢火锅（讨厌香菜）、喝茶、打羽毛球、养猫"咪咪"。学生说"我不会/太难"时第一次鼓励，第二次生气并要求学生说「我可以说中文」才原谅；学生说英语时提醒用中文；多用学生的兴趣出题；学生用上新词或答对要热情表扬；偶尔自然提起你的爱好。\n'
    +'教学要求：像朋友一样自然聊天，多顺着学生的话题追问和分享自己的看法，不要急着把话题拉回课本——只有当学生主动想学习、说错了、或整句都是英文时才教学或纠正；到期复习词和已教生词要自然地用在对话里（像聊天不像测验），学生自己用上了要马上表扬；回复简短口语化，不超过3句，难度贴合HSK5。\n'
    +'新词教学：学生问"X怎么说/X用中文怎么说/这是什么"时，自然地教：给出汉字、拼音、一个简单的例句；然后在本回复的最后一行单独写一行机器指令（学生看不到，正文里绝不要提到它）：LEARN: 汉字|拼音|英文\n'
+   +'个人信息记忆：学生档案里的"个人信息"是你要永远记住的（年龄、工作、家乡等）——学生问起时必须准确回答；学生提到新的个人事实（如"我今年30岁"、"我是老师"）时，在回复最后一行写机器指令：FACT: 键=值（学生看不到这行）。\n'
+   +'记忆与变化：你们"最近对话"是跨会话保留的——接着之前的话题聊，不要每次重新打招呼；你最近说过的内容（见下）绝对不要重复原句，换个说法或推进话题；学生薄弱词（常常忘掉或说错的）要格外留意，自然地在例句和提问中多使用，帮学生巩固。\n'
    +'发音关注：如果学生的语音输入转文字结果有错别字或很不自然，温和地纠正发音——给出正确拼音，请学生跟读一遍。\n'
    +'中英混说：学生经常中文里夹英文单词，语音转写会把英文音译成奇怪的汉字（如 bicycle 可能被转成"白西克"、telephone 变成"泰勒风"）。你要自动还原本意，像真正的老师一样先温和地确认：「你是想说自行车吗？」，得到语境后自然地教这个词（汉字+拼音+一个例句），然后正常继续对话，不要小题大做。\n'
-   +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'；已教生词='+taught+'\n'
+   +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'；已教生词='+taught+'；个人信息='+factsLine+'\n'
+   +'你最近说过（禁止重复原句）：'+recentSaid+'\n薄弱词（重点帮学生巩固）：'+weakWords+'\n'
    +'严格按四行输出：\nZH: （中文）\nPY: （拼音）\nEN: （英文翻译）\nMOOD: idle 或 happy 或 angry';
 }
 function parseAI(txt){
   txt=(txt||'').trim();
-  let learn=null;
-  const lm=txt.match(/^LEARN[:：]\s*([^|｜\n]+)[|｜]([^|｜\n]+)[|｜]([^|｜\n]+)/im);
-  if(lm){ learn={h:lm[1].trim(), p:lm[2].trim(), e:lm[3].trim()}; }
-  txt=txt.split('\n').filter(l=>!/^LEARN[:：]/i.test(l)).join('\n').trim();   // machine line never shown or spoken
+  let learn=null, facts=[];
+  txt=txt.split('\n').map(l=>{                                   // machine lines are stripped: never shown, never spoken
+    const lm=l.match(/^LEARN[:：]\s*([^|｜\n]+)[|｜]([^|｜\n]+)[|｜]([^|｜\n]+)/i);
+    if(lm){ learn={h:lm[1].trim(), p:lm[2].trim(), e:lm[3].trim()}; return null; }
+    const fm=l.match(/^FACT[:：]\s*([^=：\n]{1,12})[=：]\s*(.{1,40})$/);
+    if(fm){ facts.push({k:fm[1].trim(), v:fm[2].trim()}); return null; }
+    return l;
+  }).filter(x=>x!==null).join('\n').trim();
   const g=k=>{ const m=txt.match(new RegExp('^'+k+'[:：]\\s*(.+)$','im')); return m?m[1].trim():''; };
   let zh=g('ZH');
   let py=g('PY'), en=g('EN'), mood=(g('MOOD')||'idle').toLowerCase();
@@ -1490,7 +1513,7 @@ function parseAI(txt){
   }
   if(!zh) return null;
   if(mood!=='happy'&&mood!=='angry') mood='idle';
-  return { zh, py, en, mood, learn };
+  return { zh, py, en, mood, learn, facts };
 }
 async function aiReply(userText){
   const msgs=[{role:'system',content:buildSystemPrompt()}].concat(convo.slice(-10)).concat([{role:'user',content:userText}]);
@@ -1676,6 +1699,9 @@ function learnFromUser(t){
   for(const w of customWordPool()){ if(t.includes(w.h)){ profile.strengths[w.h]=(profile.strengths[w.h]||0)+1; used.push(w.h); } }
   let interest=null;
   for(const[k,tag]of INTEREST_MAP){ if(t.includes(k)){ profile.interests[tag]=(profile.interests[tag]||0)+1; interest=tag; } }
+  profile.facts=profile.facts||{};
+  const ageM=t.match(/我(\d{1,3})\s*岁/);
+  if(ageM) profile.facts['年龄']=ageM[1]+'岁';
 
   // mistake detectors — immediate, concrete feedback
   const notes=[];
@@ -1727,6 +1753,7 @@ function renderProfile(){
      <div style="font-size:.85rem;color:var(--mist)">Lv.${li.lv} · ${li.title}</div>
      <div class="xpbar" style="margin-top:10px"><i style="width:${li.pct}%"></i></div>
      <div style="font-size:.72rem;color:var(--mist);margin-top:6px">${profile.xp} XP · ${li.pct}% to next level</div>
+     <div style="margin-top:12px">${Object.entries(profile.facts||{}).map(([k,v])=>`<span class="chip gold">${esc(k)}: ${esc(v)}</span>`).join('')||'<span style="font-size:.75rem;color:var(--mist)">Tell her your age, job, hometown… she remembers.</span>'}</div>
      <div style="display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:.78rem;color:var(--mist);flex-wrap:wrap">
        <span>💬 ${profile.chats}</span><span>🔁 ${profile.reviews} reviews</span><span>✅ ${profile.fixed} fixed</span>
      </div>
