@@ -1054,15 +1054,17 @@ const micBtn = document.getElementById('mic-btn');
 const micState = document.getElementById('mic-state');
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[], interruptFired=false, interruptCorrection=false;
+let lastRecError=false, recEnded=true;
 let recLang = lsGet('recLang','zh-CN');   // 'zh-CN' or 'en-US' — tap 🌐 on the hearing bar to switch
-if(SR){
-  rec = new SR(); rec.lang='zh-CN'; rec.interimResults=true; rec.maxAlternatives=1;
+function buildRecognizer(){
+  if(!SR) return null;
+  const r = new SR(); r.lang=recLang||'zh-CN'; r.interimResults=true; r.maxAlternatives=1;
   let finalT='';
-  rec._reset=()=>{ finalT=''; };
-  rec.onstart = ()=>{ dlog('🎙 rec.onstart — engine listening'); };
-  rec.onsoundstart = ()=>{ dlog('🎙 onsoundstart — MIC HEARS AUDIO ✓ (if no text follows → Google/network blocker, not your mic)'); };
-  rec.onsoundend   = ()=>{ dlog('🎙 onsoundend'); };
-  rec.onresult = e=>{
+  r._reset=()=>{ finalT=''; };
+  r.onstart = ()=>{ dlog('🎙 r.onstart — engine listening'); };
+  r.onsoundstart = ()=>{ dlog('🎙 onsoundstart — MIC HEARS AUDIO ✓ (if no text follows → Google/network blocker, not your mic)'); };
+  r.onsoundend   = ()=>{ dlog('🎙 onsoundend'); };
+  r.onresult = e=>{
     let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       if(e.results[i].isFinal) finalT += e.results[i][0].transcript;
@@ -1083,8 +1085,8 @@ if(SR){
       }
     }
   };
-  let lastRecError=false;
-  rec.onend = ()=>{
+  r.onend = ()=>{
+    recEnded=true;
     recording=false; micBtn.classList.remove('recording');
     micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Hold to talk · 按住说话';
     const v=document.getElementById('chat-text').value.trim();
@@ -1095,7 +1097,7 @@ if(SR){
     hearHide(2600);
     if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb,h.onChunk), 350); dlog('🔊 teacher speaks her held reply'); }
     lastRecError=false;
-    dlog('🎙 rec.onend');
+    dlog('🎙 r.onend');
   };
   /* conservative local screen: only flags CLEARLY broken Chinese so she never cuts off good speech */
   window.detectPoorChinese = function(txt){
@@ -1103,11 +1105,11 @@ if(SR){
     if(/我是很/.test(txt)) return 'grammar-wo-shi-hen';
     return null;
   };
-  rec.onerror = (e)=>{
+  r.onerror = (e)=>{
     recording=false; micBtn.classList.remove('recording');
     lastRecError=true; stopMeter(); setMood('idle');
     hearShow('⚠️ '+e.error+' — see pill / 🔬 diagnostic','err'); hearHide(4000);
-    dlog('🎙 rec.onerror → '+e.error);
+    dlog('🎙 r.onerror → '+e.error);
     const msgs={
       'not-allowed':'🔒 Mic permission denied → tap ⋮/lock icon → Site settings → Microphone → Allow → reload',
       'service-not-allowed':'🔒 Mic blocked by browser policy — allow microphone, then reload',
@@ -1119,14 +1121,16 @@ if(SR){
     micState.textContent = msgs[e.error] || ('⚠️ '+e.error);
     if(e.error==='language-not-supported' && !langRetried){
       langRetried=true; dlog('🎙 retrying with lang=zh …');
-      try{ rec.lang='zh'; setTimeout(()=>{ recording=true; micBtn.classList.add('recording'); rec.start(); },150); }catch(_){}
+      try{ r.lang='zh'; setTimeout(()=>{ recording=true; micBtn.classList.add('recording'); r.start(); },150); }catch(_){}
       return;
     }
     if(e.error==='network'||e.error==='service-not-allowed') micDead=true;
     if(e.error==='network') showBanner('🌐 <b>Network error:</b> Chrome sends your voice to Google\'s servers — unreachable here, so no Android browser can do voice input. ✅ <b>Tap the text box and use your keyboard\'s 🎤</b> (iFlytek/Baidu dictation) — I\'ll receive it as text. On iPhone, Safari uses Apple\'s servers and works.');
   };
-  rec.onnomatch = ()=>{ micState.textContent='🤷 没听清 — try again'; dlog('🎙 onnomatch'); };
+  r.onnomatch = ()=>{ micState.textContent='🤷 没听清 — try again'; dlog('🎙 onnomatch'); };
+  return r;
 }
+rec = buildRecognizer();
 function showBanner(msg){
   let b=document.getElementById('sr-banner');
   if(!b){
@@ -1183,6 +1187,7 @@ function beginTalking(){
   micBtn.classList.add('recording');               // INSTANT feedback: every press visibly registers, before any async work
   hearShow('🎙 requesting mic… 请求麦克风','');
   dlog('🎙 press registered');
+  if(SR) rec = buildRecognizer();          // fresh engine per hold: Android recognizers often die after one session
   if(rec) rec.lang=recLang;
   if(rec._reset) rec._reset();
   document.getElementById('chat-text').value='';
@@ -1231,7 +1236,15 @@ function endTalking(reason){
   recording=false; recStarted=false;
   micBtn.classList.remove('recording');
   stopMeter(); setMood('idle');
-  try{ rec.stop(); }catch(e){ finishRec(); }          // onend fires → send; if stop throws, finish manually
+  recEnded=false;
+  try{ rec.stop(); }catch(e){ finishRec(); return; }   // onend fires → send; if stop throws, finish manually
+  setTimeout(()=>{                                      // watchdog: never leave the user hanging in "listening"
+    if(!recEnded){
+      recEnded=true;
+      if(!lastRecError) finishRec();
+      else micState.textContent='🎤 Hold to talk · 按住说话';
+    }
+  }, 2500);
 }
 micBtn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); beginTalking(); });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>micBtn.addEventListener(ev, endTalking));
