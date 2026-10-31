@@ -336,7 +336,8 @@ button{touch-action:manipulation;}
 #whatsay:hover{background:#e2d4ff;}
 .mic-row{display:flex;justify-content:center;padding:14px 0 18px;background:#f6f0e2;position:sticky;bottom:0;z-index:6;}   /* pinned: layout reflows can't move it from under the thumb */
 .chat-input{position:sticky;bottom:0;z-index:6;}
-#live-hear{position:sticky;bottom:0;z-index:6;}
+#chat-log{position:relative;}                       /* anchor for the floating hearing bar */
+#live-hear{position:absolute;left:0;right:0;bottom:0;z-index:7;box-shadow:0 -8px 20px rgba(0,0,0,.10);border-radius:0;}   /* overlays the chat pane — appearing NEVER pushes the mic button */
 body.talking{overflow:hidden;}   /* no page scroll / toolbar collapse while holding the mic */
 .mic-row .mic-btn{width:86px;height:86px;font-size:2rem;box-shadow:0 10px 26px rgba(200,54,27,.5);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 /* lesson card strip */
