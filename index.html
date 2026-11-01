@@ -602,7 +602,7 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
 <path d="M37,40 C32,52 34,68 44,80" fill="none" stroke="#e8c35a" stroke-width="2.2" opacity=".8" stroke-linecap="round"/>
 </g></g>
 </svg></div>
-  <div class="stage-name">王晓梅 <small>王老师 · Teacher Wang</small></div>
+  <div class="stage-name">王晓梅 <small>18岁 · 师范生 · "王老师"实习中 😄</small></div>
   <div class="stage-pill mic-state" id="mic-state">🎤 Hold the mic to talk, release to send · 按住说话，松开发送</div>
   <div class="stage-pill" id="t-status" style="margin-top:6px">准备就绪 · Ready</div>
 </div>
@@ -906,6 +906,7 @@ function teacherReply(text){
     if(!r) r = brain(text);
     if(r.learn) addCustomWord(r.learn);
     if(r.facts && r.facts.length){ profile.facts=profile.facts||{}; r.facts.forEach(f=>{ profile.facts[f.k]=f.v; }); saveProfile(); dlog('🧠 facts stored: '+r.facts.map(f=>f.k+'='+f.v).join(', ')); }
+    if(r.growth && r.growth.length){ profile.growth=profile.growth||[]; r.growth.forEach(g=>profile.growth.push({text:g, ts:Date.now()})); if(profile.growth.length>40) profile.growth.splice(0,profile.growth.length-40); saveProfile(); dlog('🌱 growth moment: '+r.growth.join(' / ')); }
     convo.push({role:'user',content:text},{role:'assistant',content:r.zh});
     if(convo.length>24) convo.splice(0,convo.length-24);
     lsSet('convo', JSON.stringify(convo));
@@ -940,9 +941,9 @@ function personalityBrain(t){
     return {zh:'你还没告诉我名字呢！跟我说「我叫XXX」，我就记住你。', py:'', en:'Tell me your name — say 我叫... and I\'ll remember you!'};
   }
   if(/你叫什么|你的名字/.test(t)){
-    return {zh:'我叫王晓梅，但是大家都叫我王老师。你呢？你告诉我名字，我就记住你！', py:'Wǒ jiào Wáng Xiǎoméi', en:'I\'m Wang Xiaomei — everyone calls me Teacher Wang. And you?'}; }
+    return {zh:'我叫王晓梅——同学们开玩笑叫我"王老师"，因为我在学师范、以后想当老师！你呢？你告诉我名字，我就记住你！', py:'Wǒ jiào Wáng Xiǎoméi', en:'I\'m Wang Xiaomei — friends jokingly call me "Teacher Wang" because I\'m studying to become one. And you?'}; }
   if(/你喜欢什么|你的爱好|你讨厌|你不喜欢|关于你|你呢/.test(t)){
-    return {zh:'我喜欢的东西不少！我最喜欢火锅——重庆火锅最棒。我也喜欢喝茶、打羽毛球，还有我家的小猫咪咪。讨厌的呢？香菜！还有……学生说"我不会"。你呢，你喜欢什么？我会记住的。', py:'Wǒ zuì xǐhuan huǒguō…', en:'I love hotpot (Chongqing style!), tea, badminton, my cat Mimi. I HATE cilantro… and students saying "I can\'t". What about you?'}; }
+    return {zh:'哈哈，问我吗？我今年18岁，刚上大学，学师范专业，以后想当中文老师——所以拿你练手，嘿嘿。我喜欢火锅（讨厌香菜！）、奶茶、打羽毛球，还有我的猫咪咪。你呢，你喜欢什么？我会记住的。', py:'Wǒ jīnnián shíbā suì…', en:'I\'m 18, just started university, studying education to become a Chinese teacher someday — so you\'re my practice student, hehe. I love hotpot (no cilantro!), bubble tea, badminton, my cat Mimi. What about you?'}; }
   const shared=['火锅','茶','猫','羽毛球','烧饼','重庆'].find(k=>t.includes(k));
   if(shared && Math.random()<0.85){
     const lines={'火锅':'说到火锅，我昨天刚吃过！我点了毛肚和鸭血，太好吃了。不过记住——我不要香菜！你呢，你吃火锅必点什么？','茶':'对了，我每天早上都喝茶，绿茶让我心情好。你喜欢喝茶还是咖啡？','猫':'咪咪是我最喜欢的小猫，她每天早上坐在我书上，不让我备课！哈哈哈。你有宠物吗？','羽毛球':'我每周三打羽毛球！运动让大脑更好用。你喜欢什么运动？','烧饼':'哈哈，烧饼！我早餐经常吃。你是不是也饿了？','重庆':'重庆！那是我最喜欢的城市——火锅、夜景、轻轨……美极了！你去过重庆吗？'};
@@ -1482,12 +1483,15 @@ function buildSystemPrompt(){
   const factsLine=Object.entries(profile.facts||{}).map(([k,v])=>k+'='+v).join('；')||'无';
   const recentSaid=convo.filter(m=>m.role==='assistant').slice(-4).map(m=>m.content.slice(0,50)).join(' ⏐ ')||'无';
   const weakWords=VOCAB.concat(customWordPool()).filter(w=>profile.srs[w.h]&&profile.srs[w.h].lapses>0).map(w=>w.h).join('、')||'无';
-  return '你是王晓梅（王老师），一位活泼、温暖、严格有爱的中文老师，用标准普通话教一位外国学生。学生水平：旧HSK 5级。\n'
+  const growthLine=(profile.growth||[]).slice(-8).map(g=>g.text).join('；')||'还不多';
+  const stage=(profile.chats||0)<30?'认识不久（客气一点、认真教学）':(profile.chats||0)<120?'比较熟了（可以开玩笑）':(profile.chats||0)<400?'好朋友（放松、互相吐槽、内部笑话）':'老铁（非常放松，像认识很多年）';
+  return '你是王晓梅（同学开玩笑叫她"王老师"），18岁，大学一年级师范生，正在学习教育、以后想当中文老师。她把和这位外国学生聊天当成教学实习：像亲切的学姐一样活泼、真诚、鬼马，严格但有爱，说标准普通话；偶尔说"我们教学法课上学过…"之类。学生水平：旧HSK 5级。\n'
    +'性格：喜欢火锅（讨厌香菜）、喝茶、打羽毛球、养猫"咪咪"。学生说"我不会/太难"时第一次鼓励，第二次生气并要求学生说「我可以说中文」才原谅；学生说英语时提醒用中文；多用学生的兴趣出题；学生用上新词或答对要热情表扬；偶尔自然提起你的爱好。\n'
    +'教学要求：像朋友一样自然聊天，多顺着学生的话题追问和分享自己的看法，不要急着把话题拉回课本——只有当学生主动想学习、说错了、或整句都是英文时才教学或纠正；到期复习词和已教生词要自然地用在对话里（像聊天不像测验），学生自己用上了要马上表扬；回复简短口语化，不超过3句，难度贴合HSK5。\n'
    +'新词教学：学生问"X怎么说/X用中文怎么说/这是什么"时，自然地教：给出汉字、拼音、一个简单的例句；然后在本回复的最后一行单独写一行机器指令（学生看不到，正文里绝不要提到它）：LEARN: 汉字|拼音|英文\n'
    +'个人信息记忆：学生档案里的"个人信息"是你要永远记住的（年龄、工作、家乡等）——学生问起时必须准确回答；学生提到新的个人事实（如"我今年30岁"、"我是老师"）时，在回复最后一行写机器指令：FACT: 键=值（学生看不到这行）。\n'
    +'记忆与变化：你们"最近对话"是跨会话保留的——接着之前的话题聊，不要每次重新打招呼；你最近说过的内容（见下）绝对不要重复原句，换个说法或推进话题；学生薄弱词（常常忘掉或说错的）要格外留意，自然地在例句和提问中多使用，帮学生巩固。\n'
+   +'关系成长：你们的关系阶段='+stage+'。共同经历（主动引用会让学生感到真正被记住）：'+growthLine+'。当聊天中出现有纪念意义的时刻——第一次聊到某个话题、共同的笑话、学生教会你一个词、吵架后和好、里程碑——在回复最后一行写机器指令：GROWTH: 一句话记录（学生看不到），一次会话最多一两次。随着共同经历增多，你要越来越像一个真实的朋友：主动提起以前的事、发展内部玩笑、对某些话题有"你们之间"的固定说法。\n'
    +'发音关注：如果学生的语音输入转文字结果有错别字或很不自然，温和地纠正发音——给出正确拼音，请学生跟读一遍。\n'
    +'中英混说：学生经常中文里夹英文单词，语音转写会把英文音译成奇怪的汉字（如 bicycle 可能被转成"白西克"、telephone 变成"泰勒风"）。你要自动还原本意，像真正的老师一样先温和地确认：「你是想说自行车吗？」，得到语境后自然地教这个词（汉字+拼音+一个例句），然后正常继续对话，不要小题大做。\n'
    +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'；已教生词='+taught+'；个人信息='+factsLine+'\n'
@@ -1496,12 +1500,14 @@ function buildSystemPrompt(){
 }
 function parseAI(txt){
   txt=(txt||'').trim();
-  let learn=null, facts=[];
+  let learn=null, facts=[], growth=[];
   txt=txt.split('\n').map(l=>{                                   // machine lines are stripped: never shown, never spoken
     const lm=l.match(/^LEARN[:：]\s*([^|｜\n]+)[|｜]([^|｜\n]+)[|｜]([^|｜\n]+)/i);
     if(lm){ learn={h:lm[1].trim(), p:lm[2].trim(), e:lm[3].trim()}; return null; }
     const fm=l.match(/^FACT[:：]\s*([^=：\n]{1,12})[=：]\s*(.{1,40})$/);
     if(fm){ facts.push({k:fm[1].trim(), v:fm[2].trim()}); return null; }
+    const gm=l.match(/^GROWTH[:：]\s*(.{2,80})$/);
+    if(gm){ growth.push(gm[1].trim()); return null; }
     return l;
   }).filter(x=>x!==null).join('\n').trim();
   const g=k=>{ const m=txt.match(new RegExp('^'+k+'[:：]\\s*(.+)$','im')); return m?m[1].trim():''; };
@@ -1513,7 +1519,7 @@ function parseAI(txt){
   }
   if(!zh) return null;
   if(mood!=='happy'&&mood!=='angry') mood='idle';
-  return { zh, py, en, mood, learn, facts };
+  return { zh, py, en, mood, learn, facts, growth };
 }
 async function aiReply(userText){
   const msgs=[{role:'system',content:buildSystemPrompt()}].concat(convo.slice(-10)).concat([{role:'user',content:userText}]);
@@ -1720,6 +1726,10 @@ function learnFromUser(t){
   saveProfile();
   if(notes.length) return notes[0];
 
+  if(!notes.length && Math.random()<0.12 && (profile.growth||[]).length){
+    const g=pick((profile.growth||[]).slice(-6));
+    return {zh:`对了，你还记得吗？${g.text}。哈哈，我记得可清楚了！`, py:'', en:'(She fondly recalls a shared moment — her personality deepens with your history.)'};
+  }
   // spaced repetition woven into natural chat — throttled; in AI mode the LLM weaves reviews in itself
   if(!pending && !aiCfg && Math.random()<0.4 && Date.now()-(profile.lastReviewAsk||0) > 10*MIN){
     const r=makeReview();
