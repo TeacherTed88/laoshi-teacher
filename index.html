@@ -1296,6 +1296,7 @@ function beginTalking(){
     }
     if(!recording){ stopMeter(); document.body.classList.remove('talking'); dlog('🎙 released before mic was ready — canceled'); return; }
     micBtn.classList.add('recording');
+    micDead=false;                                    // clear stale "mic unusable" state from older failed attempts
     killSpeech();                                     // she yields the floor instantly
     setMood('listening');
     if(sttCfg && sttCfg.appId && sttCfg.apiKey && sttCfg.apiSecret){
