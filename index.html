@@ -622,7 +622,7 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
       <input id="chat-text" type="text" placeholder="Type in Chinese or English…" autocomplete="off">
       <button type="button" class="send-btn" id="send-btn" title="发送">➤</button>
     </div>
-    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="photo-input" accept="image/*" style="display:none">
     <button type="button" id="whatsay">💡 What to say?</button>
     <div class="mic-row"><button type="button" class="mic-btn" id="mic-btn" title="tap to speak · 点我说话">🎤</button></div>
   </div>
@@ -1105,7 +1105,7 @@ function buildRecognizer(){
     stopMeter(); setMood('idle');
     if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); }
     else if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
-    else if(!lastRecError){ hearShow('🤷 heard nothing — tap mic & speak again','err'); }
+    else if(!lastRecError){ hearShow('🤷 没听清——再说一遍，说慢一点 · didn\'t catch that — try again, a bit slower','err'); }
     hearHide(2600);
     if(heldSpeak){ const h=heldSpeak; heldSpeak=null; setTimeout(()=>speak(h.text,h.cb,h.onChunk), 350); dlog('🔊 teacher speaks her held reply'); }
     lastRecError=false;
@@ -1120,7 +1120,8 @@ function buildRecognizer(){
   r.onerror = (e)=>{
     recording=false; micBtn.classList.remove('recording');
     lastRecError=true; stopMeter(); setMood('idle');
-    hearShow('⚠️ '+e.error+' — see pill / 🔬 diagnostic','err'); hearHide(4000);
+    const friendlyErr = e.error==='network' ? '⚠️ network——检查VPN是否稳定 / check VPN' : (e.error==='audio-capture' ? '⚠️ mic busy——close other apps' : '⚠️ '+e.error);
+    hearShow(friendlyErr+' · 或点输入框用键盘🎤 / or use the keyboard mic','err'); hearHide(4500);
     dlog('🎙 r.onerror → '+e.error);
     const msgs={
       'not-allowed':'🔒 Mic permission denied → tap ⋮/lock icon → Site settings → Microphone → Allow → reload',
@@ -1185,6 +1186,76 @@ function stopMeter(){
   if(meterStream){ meterStream.getTracks().forEach(t=>t.stop()); meterStream=null; }
   if(meterCtx){ meterCtx.close().catch(()=>{}); meterCtx=null; }
 }
+/* ===== 讯飞 iFlytek real-time recognition — domestic servers, no VPN, no Google ===== */
+let sttCfg=null; try{ sttCfg=JSON.parse(lsGet('iflytek','null')); }catch(e){}
+let iflytekSession=null, iflytekActive=false;
+function u8ToB64(u8){ let s=''; for(let k=0;k<u8.length;k+=0x8000){ s+=String.fromCharCode.apply(null,u8.subarray(k,k+0x8000)); } return btoa(s); }
+async function iflytekAuthUrl(){
+  const host='iat-api.xfyun.cn';
+  const date=new Date().toUTCString();
+  const sigOrigin='host: '+host+'\ndate: '+date+'\nGET /v2/iat HTTP/1.1';
+  const key=await crypto.subtle.importKey('raw', new TextEncoder().encode(sttCfg.apiSecret), {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  const sig=await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(sigOrigin));
+  const auth='api_key="'+sttCfg.apiKey+'", algorithm="hmac-sha256", headers="host date request-line", signature="'+u8ToB64(new Uint8Array(sig))+'"';
+  return 'wss://'+host+'/v2/iat?authorization='+encodeURIComponent(u8ToB64(new TextEncoder().encode(auth)))+'&date='+encodeURIComponent(date)+'&host='+host;
+}
+function iflytekCleanup(){
+  const sess=iflytekSession; if(!sess) return; iflytekSession=null;
+  try{ sess.proc&&sess.proc.disconnect(); sess.src&&sess.src.disconnect(); sess.ctx&&sess.ctx.close(); }catch(e){}
+}
+async function iflytekBegin(){
+  const url=await iflytekAuthUrl();
+  const ws=new WebSocket(url);
+  const sess={ ws, text:'', lastBg:-1, ctx:null, proc:null, src:null, closed:false };
+  iflytekSession=sess;
+  await new Promise((resolve,reject)=>{
+    const to=setTimeout(()=>reject(new Error('连接讯飞超时')), 8000);
+    ws.onopen=()=>{ clearTimeout(to); resolve(); };
+    ws.onerror=()=>{ clearTimeout(to); reject(new Error('无法连接讯飞')); };
+  });
+  ws.onmessage=(ev)=>{
+    let msg; try{ msg=JSON.parse(ev.data); }catch(e){ return; }
+    if(msg.code!==0){ dlog('讯飞 error '+msg.code+': '+msg.message); micState.textContent='⚠️ 讯飞 '+msg.code+'——检查AppID/Key/额度'; return; }
+    const result=msg.data&&msg.data.result;
+    if(result&&result.ws){
+      for(const seg of result.ws){
+        const bg=(typeof seg.bg==='number')?seg.bg:0;
+        if(bg<=sess.lastBg) continue;
+        sess.lastBg=bg;
+        for(const cw of (seg.cw||[])){ if(cw.w) sess.text+=cw.w; }
+      }
+    }
+  };
+  ws.onclose=()=>{
+    if(sess.closed) return;
+    sess.closed=true; iflytekCleanup();
+    if(!recEnded){ recEnded=true; document.getElementById('chat-text').value=sess.text.trim(); finishRec(); }
+  };
+  sess.ctx=new AudioContext({sampleRate:16000});
+  sess.src=sess.ctx.createMediaStreamSource(meterStream);
+  sess.proc=sess.ctx.createScriptProcessor(4096,1,1);
+  let first=true;
+  sess.proc.onaudioprocess=(e)=>{
+    if(sess.closed||ws.readyState!==1) return;
+    const f32=e.inputBuffer.getChannelData(0);
+    const i16=new Int16Array(f32.length);
+    for(let k=0;k<f32.length;k++){ let v=Math.round(f32[k]*32767); i16[k]=v>32767?32767:(v<-32768?-32768:v); }
+    const audio=u8ToB64(new Uint8Array(i16.buffer));
+    const frame = first
+      ? {common:{app_id:sttCfg.appId}, business:{language:'zh_cn', domain:'iat', accent:'mandarin'}, data:{status:0, format:'audio/L16;rate=16000', encoding:'raw', audio}}
+      : {data:{status:1, format:'audio/L16;rate=16000', encoding:'raw', audio}};
+    first=false;
+    try{ ws.send(JSON.stringify(frame)); }catch(err){}
+  };
+  sess.src.connect(sess.proc); sess.proc.connect(sess.ctx.destination);
+}
+function iflytekFinish(){
+  const sess=iflytekSession;
+  if(!sess){ finishRec(); return; }
+  try{ sess.ws.send(JSON.stringify({data:{status:2, format:'audio/L16;rate=16000', encoding:'raw', audio:''}})); }catch(e){}
+  setTimeout(()=>{ if(!sess.closed){ sess.closed=true; try{ sess.ws.close(); }catch(e){} } }, 4000);
+}
+
 /* hold-to-talk: press & hold the mic while speaking, release to stop & send */
 function beginTalking(){
   if(!rec){
@@ -1199,6 +1270,7 @@ function beginTalking(){
   micBtn.classList.add('recording');               // INSTANT feedback: every press visibly registers, before any async work
   hearShow('🎙 requesting mic… 请求麦克风','');
   dlog('🎙 press registered');
+  try{ if(rec) rec.abort(); }catch(e){}     // kill any zombie session holding the audio focus
   if(SR) rec = buildRecognizer();          // fresh engine per hold: Android recognizers often die after one session
   if(rec) rec.lang=recLang;
   if(rec._reset) rec._reset();
@@ -1226,11 +1298,19 @@ function beginTalking(){
     micBtn.classList.add('recording');
     killSpeech();                                     // she yields the floor instantly
     setMood('listening');
+    if(sttCfg && sttCfg.appId && sttCfg.apiKey && sttCfg.apiSecret){
+      try{
+        await iflytekBegin();
+        iflytekActive=true; recStarted=true;
+        micState.textContent='🔴 讯飞聆听中…松开发送 · 🇨🇳 国内识别，无需VPN';
+        return;
+      }catch(err){ dlog('🎙 讯飞启动失败: '+((err&&err.message)||err)+' → 回退'); micState.textContent='⚠️ 讯飞连接失败，回退其他方式'; }
+    }
     micState.textContent='🔴 Listening… release to send · 松开手指发送';
     addMsg('sys','🎤 listening… release to send · 松开手指发送');
     try{
       rec.start(); recStarted=true;
-      setTimeout(()=>{ if(recording && recStarted){ dlog('🎙 auto-stop after 45s'); try{ rec.stop(); }catch(e){} } },45000);
+      setTimeout(()=>{ if(recording && recStarted){ dlog('🎙 auto-stop after 45s'); endTalking(); } },45000);
     }catch(e){ recording=false; recStarted=false; micBtn.classList.remove('recording'); micState.textContent='⚠️ '+e.message; }
   })();
 }
@@ -1243,20 +1323,24 @@ function endTalking(reason){
     micState.textContent='🎤 hold to talk · 按住说话';
     return;
   }
-  dlog('🎙 released — delivering what was heard');
-  micState.textContent='🎤 delivering…';
-  recording=false; recStarted=false;
-  micBtn.classList.remove('recording');
-  stopMeter(); setMood('idle');
-  recEnded=false;
-  try{ rec.stop(); }catch(e){ finishRec(); return; }   // onend fires → send; if stop throws, finish manually
-  setTimeout(()=>{                                      // watchdog: never leave the user hanging in "listening"
-    if(!recEnded){
-      recEnded=true;
-      if(!lastRecError) finishRec();
-      else micState.textContent='🎤 Hold to talk · 按住说话';
-    }
-  }, 2500);
+  dlog('🎙 released — letting the engine finalize the last utterance…');
+  micState.textContent='🎤 finishing… 识别中';
+  setTimeout(()=>{                                      // grace period: Chrome discards unfinalized audio if we stop() too fast
+    if(recEnded) return;                                // engine already auto-ended and delivered
+    recording=false; recStarted=false;
+    micBtn.classList.remove('recording');
+    stopMeter(); setMood('idle');
+    recEnded=false;
+    if(iflytekActive){ iflytekActive=false; iflytekFinish(); return; }   // 讯飞: end-frame → onclose delivers
+    try{ rec.stop(); }catch(e){ finishRec(); return; } // onend fires → send; if stop throws, finish manually
+    setTimeout(()=>{                                    // watchdog: never leave the user hanging in "listening"
+      if(!recEnded){
+        recEnded=true;
+        if(!lastRecError) finishRec();
+        else micState.textContent='🎤 Hold to talk · 按住说话';
+      }
+    }, 2500);
+  }, 600);
 }
 micBtn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); beginTalking(); });
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>micBtn.addEventListener(ev, endTalking));
@@ -1442,7 +1526,9 @@ document.getElementById('camera-btn').onclick=()=>{
     showBanner('📷 <b>拍课本需要一个会看图的模型。</b>让朋友到 platform.moonshot.cn 开一个 Kimi key（跟 DeepSeek 一样的方式），然后在 AI Brain 里：base 填 <b>https://api.moonshot.cn/v1</b>，视觉模型填 <b>moonshot-v1-8k-vision-preview</b>。DeepSeek 的 key 看不了图片。');
     return;
   }
+  dlog('📷 photo picker requested');
   document.getElementById('photo-input').click();
+  setTimeout(()=>{ dlog('📷 if nothing opened: Chrome camera/photos permission is likely blocked → tap 🔒 by the URL → Site settings → Camera & Photos → Allow'); }, 1200);
 };
 document.getElementById('photo-input').addEventListener('change', async (e)=>{
   const file=e.target.files[0];
@@ -1542,6 +1628,7 @@ function aiFillUI(){
   const isCustom=![...b.options].some(o=>o.value===aiCfg.base); b.value=isCustom?'custom':aiCfg.base;
   if(k) k.value=aiCfg.key; if(m) m.value=aiCfg.model;
   const vis=document.getElementById('ai-vision'); if(vis&&aiCfg.vision) vis.value=aiCfg.vision;
+  if(sttCfg){ const ia=document.getElementById('ifly-appid'), ik=document.getElementById('ifly-key'), is_=document.getElementById('ifly-secret'); if(ia) ia.value=sttCfg.appId; if(ik) ik.value=sttCfg.apiKey; if(is_) is_.value=sttCfg.apiSecret; }
   if(isCustom){ u.style.display='block'; }
   if(u&&aiCfg.base&&![...b.options].some(o=>o.value===aiCfg.base)) u.value=aiCfg.base;
   if(u&&aiCfg.base&&!/[...]/.test('')){}
@@ -1557,6 +1644,9 @@ function aiSaveFromUI(){
   if(!key){ aiStatus('enter an API key first'); return; }
   const vision=(document.getElementById('ai-vision')||{}).value||'';
   aiCfg={base,key,model:model||'deepseek-chat',vision:vision.trim()};
+  const ifly={ appId:(document.getElementById('ifly-appid')||{value:''}).value.trim(), apiKey:(document.getElementById('ifly-key')||{value:''}).value.trim(), apiSecret:(document.getElementById('ifly-secret')||{value:''}).value.trim() };
+  if(ifly.appId&&ifly.apiKey&&ifly.apiSecret){ sttCfg=ifly; lsSet('iflytek',JSON.stringify(sttCfg)); }
+  else { sttCfg=null; lsDel('iflytek'); }
   lsSet('yuban_ai',JSON.stringify(aiCfg));
   convo=[];
   aiStatus('saved ✓ testing connection…'); aiTest(); renderProfile(); aiFillUI();
@@ -1793,6 +1883,10 @@ function renderProfile(){
   +'<input id="ai-key" type="password" placeholder="API key (sk-…)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ai-model" placeholder="model: deepseek-chat / moonshot-v1-8k / gpt-4o-mini" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ai-vision" placeholder="vision model (optional, for 📷 textbook): moonshot-v1-8k-vision-preview" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<div style="margin-top:10px;font-size:.72rem;color:var(--gold);line-height:1.6">🇨🇳 国产语音(可选,免VPN): 让朋友在 xfyun.cn 讯飞开放平台创建应用，把 AppID / APIKey / APISecret 填在这里。填好后麦克风直连讯飞，不再走Google。</div>'
+  +'<input id="ifly-appid" placeholder="讯飞 AppID" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<input id="ifly-key" placeholder="讯飞 APIKey" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<input id="ifly-secret" type="password" placeholder="讯飞 APISecret" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="nav-btn" onclick="aiSaveFromUI()">💾 Save</button><button type="button" class="nav-btn" onclick="aiTest()">🔌 Test</button><button type="button" class="nav-btn" onclick="aiClear()" style="opacity:.7">Remove</button></div>'
   +'<div id="ai-status" style="font-size:.74rem;margin-top:8px;color:var(--mist)">'+(aiCfg&&aiCfg.key?('configured: '+aiCfg.base+' · '+aiCfg.model):'')+'</div></div>' ;
   aiFillUI();
