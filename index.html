@@ -1881,13 +1881,13 @@ function renderProfile(){
   +'<option value="https://api.openai.com/v1">OpenAI — needs VPN in China</option>'
   +'<option value="custom">Custom base URL…</option></select>'
   +'<input id="ai-url" placeholder="custom base URL, e.g. https://api.deepseek.com/v1" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem;display:none">'
-  +'<input id="ai-key" type="password" placeholder="API key (sk-…)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<input id="ai-key" type="text" autocomplete="off" placeholder="API key (sk-…)" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem;-webkit-text-security:disc">'
   +'<input id="ai-model" placeholder="model: deepseek-chat / moonshot-v1-8k / gpt-4o-mini" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ai-vision" placeholder="vision model (optional, for 📷 textbook): moonshot-v1-8k-vision-preview" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<div style="margin-top:10px;font-size:.72rem;color:var(--gold);line-height:1.6">🇨🇳 国产语音(可选,免VPN): 让朋友在 xfyun.cn 讯飞开放平台创建应用，把 AppID / APIKey / APISecret 填在这里。填好后麦克风直连讯飞，不再走Google。</div>'
   +'<input id="ifly-appid" placeholder="讯飞 AppID" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ifly-key" placeholder="讯飞 APIKey" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
-  +'<input id="ifly-secret" type="password" placeholder="讯飞 APISecret" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
+  +'<input id="ifly-secret" type="text" autocomplete="off" placeholder="讯飞 APISecret" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem;-webkit-text-security:disc">'
   +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="nav-btn" onclick="aiSaveFromUI()">💾 Save</button><button type="button" class="nav-btn" onclick="aiTest()">🔌 Test</button><button type="button" class="nav-btn" onclick="aiClear()" style="opacity:.7">Remove</button></div>'
   +'<div id="ai-status" style="font-size:.74rem;margin-top:8px;color:var(--mist)">'+(aiCfg&&aiCfg.key?('configured: '+aiCfg.base+' · '+aiCfg.model):'')+'</div></div>' ;
   aiFillUI();
