@@ -1070,7 +1070,7 @@ let lastRecError=false, recEnded=true, releaseHandled=false;
 let recLang = lsGet('recLang','zh-CN');   // 'zh-CN' or 'en-US' — tap 🌐 on the hearing bar to switch
 function buildRecognizer(){
   if(!SR) return null;
-  const r = new SR(); r.lang=recLang||'zh-CN'; r.interimResults=true; r.maxAlternatives=1;
+  const r = new SR(); r.lang=recLang||'zh-CN'; r.interimResults=true; r.maxAlternatives=1; r.continuous=true;   // survive pauses; we restart on cutoffs
   let finalT='';
   r._reset=()=>{ finalT=''; };
   r.onstart = ()=>{ dlog('🎙 r.onstart — engine listening'); };
@@ -1082,7 +1082,7 @@ function buildRecognizer(){
       if(e.results[i].isFinal) finalT += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    const heardSoFar = finalT + interim;
+    const heardSoFar = (window.__holdBase||'') + finalT + interim;
     document.getElementById('chat-text').value = heardSoFar;
     hearShow(heardSoFar, finalT ? 'final' : '');
     if(interim) dlog('🎙 interim: "'+interim.slice(0,30)+'"');
@@ -1103,6 +1103,17 @@ function buildRecognizer(){
     recording=false; micBtn.classList.remove('recording');
     micState.textContent= micDead ? '🎤 Mic unusable here — type or keyboard-dictate' : '🎤 Hold to talk · 按住说话';
     const v=document.getElementById('chat-text').value.trim();
+    // long-speech support: engine cut us off while still holding → restart and keep going
+    if(recording && recStarted && !releaseHandled && !lastRecError && (window.__holdRestarts||0)<3){
+      window.__holdRestarts=(window.__holdRestarts||0)+1;
+      window.__holdBase=v;
+      dlog('🎙 engine cut off mid-hold — restarting to continue (stitch #'+window.__holdRestarts+')');
+      setTimeout(()=>{
+        if(!recording || releaseHandled) return;
+        try{ if(rec) rec.abort(); }catch(e){}
+        if(SR){ rec = buildRecognizer(); rec.lang=recLang; try{ rec.start(); }catch(e){} }
+      }, 150);
+    }
     stopMeter(); setMood('idle');
     if(v && isEcho(v)){ document.getElementById('chat-text').value=''; hearShow('🔁 我听到了自己的声音 — 请再说一次','err'); }
     else if(v && !lastRecError){ hearShow('✓ heard: '+v, 'final'); send(v); }
@@ -1190,6 +1201,7 @@ function stopMeter(){
 }
 /* ===== 讯飞 iFlytek real-time recognition — domestic servers, no VPN, no Google ===== */
 let sttCfg=null; try{ sttCfg=JSON.parse(lsGet('iflytek','null')); }catch(e){}
+setTimeout(()=>{ if(window.dlog) dlog('讯飞 config: '+(sttCfg&&sttCfg.appId?'saved ✓':'MISSING — paste in AI Brain → 🇨🇳 → Save')); }, 3000);
 let iflytekSession=null, iflytekActive=false;
 function u8ToB64(u8){ let s=''; for(let k=0;k<u8.length;k+=0x8000){ s+=String.fromCharCode.apply(null,u8.subarray(k,k+0x8000)); } return btoa(s); }
 async function iflytekAuthUrl(){
@@ -1268,6 +1280,7 @@ function beginTalking(){
   }
   if(recording) return;
   recording=true; recStarted=false; interruptFired=false; releaseHandled=false;
+  window.__holdBase=''; window.__holdRestarts=0;
   document.body.classList.add('talking');
   micBtn.classList.add('recording');               // INSTANT feedback: every press visibly registers, before any async work
   hearShow('🎙 requesting mic… 请求麦克风','');
@@ -2156,14 +2169,32 @@ if(window.dlog) dlog('🎭 3D module starting');
 function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(c) c.remove(); const av=document.getElementById('avatar'); if(av) av.style.display=''; }
 (async function initAvatar3D(){
   try{
+    if(window.dlog) dlog('🎭 probing laoshi.vrm…');
     const probe = await fetch('./laoshi.vrm', {method:'HEAD'}).catch(()=>null);
     if(!probe || !probe.ok){ removeCanvasIfAny(); if(window.dlog) dlog('🎭 3D: laoshi.vrm not found at repo root'); return; }
+    if(window.dlog) dlog('🎭 laoshi.vrm found ✓');
     let THREE, GLTFLoader, VRMLoaderPlugin;
-    try{
-      THREE = await import('three');
-      GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
-      VRMLoaderPlugin = (await import('https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js')).VRMLoaderPlugin;
-    }catch(err){ removeCanvasIfAny(); if(window.dlog) dlog('🎭 3D: three.js CDN unreachable → keeping 2D avatar'); return; }
+    const withTimeout=(promise, ms)=>Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
+    /* try CDNs in order: domestic-friendly first; import() can HANG on a filtered network, hence the timeout race */
+    const sources=[
+      {three:'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+       gltf:'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+      {three:'https://unpkg.com/three@0.160.0/build/three.module.js',
+       gltf:'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+      {three:'https://cdn.staticfile.org/three.js/0.160.0/three.module.min.js',
+       gltf:'https://cdn.staticfile.org/three.js/0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+    ];
+    let ok=false, lastErr='';
+    for(const src of sources){
+      try{
+        if(window.dlog) dlog('🎭 trying CDN: '+src.three.split('/')[2]);
+        THREE = await withTimeout(import(/* @vite-ignore */ src.three), 8000);
+        GLTFLoader = (await withTimeout(import(/* @vite-ignore */ src.gltf), 8000)).GLTFLoader;
+        VRMLoaderPlugin = (await withTimeout(import('https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js'), 8000)).VRMLoaderPlugin;
+        ok=true; break;
+      }catch(err){ lastErr=(err&&err.message)||String(err); if(window.dlog) dlog('🎭 CDN failed ('+lastErr+') — trying next'); }
+    }
+    if(!ok){ removeCanvasIfAny(); if(window.dlog) dlog('🎭 3D: all three.js CDNs unreachable → keeping 2D avatar'); return; }
     const stage = document.querySelector('.chat-stage');
     if(!stage){ return; }
     const loader = new GLTFLoader();
