@@ -1066,7 +1066,7 @@ const micBtn = document.getElementById('mic-btn');
 const micState = document.getElementById('mic-state');
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, recording=false, langRetried=false, micDead=false, heldSpeak=null, recStarted=false, teacherEchoLog=[], interruptFired=false, interruptCorrection=false;
-let lastRecError=false, recEnded=true;
+let lastRecError=false, recEnded=true, releaseHandled=false;
 let recLang = lsGet('recLang','zh-CN');   // 'zh-CN' or 'en-US' — tap 🌐 on the hearing bar to switch
 function buildRecognizer(){
   if(!SR) return null;
@@ -1086,6 +1086,7 @@ function buildRecognizer(){
     document.getElementById('chat-text').value = heardSoFar;
     hearShow(heardSoFar, finalT ? 'final' : '');
     if(interim) dlog('🎙 interim: "'+interim.slice(0,30)+'"');
+    if(e.results[e.results.length-1] && e.results[e.results.length-1].isFinal && finalT) dlog('🎙 FINAL: "'+finalT.slice(0,40)+'"');
     // interrupt-on-error: she cuts in mid-sentence if what she hears is clearly broken
     if(!interruptFired && heardSoFar.trim().length>=4){
       const problem = detectPoorChinese(heardSoFar);
@@ -1266,7 +1267,7 @@ function beginTalking(){
     return;
   }
   if(recording) return;
-  recording=true; recStarted=false; interruptFired=false;
+  recording=true; recStarted=false; interruptFired=false; releaseHandled=false;
   document.body.classList.add('talking');
   micBtn.classList.add('recording');               // INSTANT feedback: every press visibly registers, before any async work
   hearShow('🎙 requesting mic… 请求麦克风','');
@@ -1317,8 +1318,11 @@ function beginTalking(){
   })();
 }
 function endTalking(reason){
+  if(releaseHandled) return;                          // pointer+touch+leave all fire — only the first counts
+  releaseHandled=true;
   document.body.classList.remove('talking');
   if(!recording) return;                              // nothing to stop
+  recEnded=false;                                     // reset BEFORE the grace timer's guard checks it
   if(reason==='correction') interruptCorrection=true;
   if(!recStarted){                                    // released before the engine started → cancel cleanly
     recording=false; micBtn.classList.remove('recording'); stopMeter(); setMood('idle');
@@ -2065,7 +2069,7 @@ function beep(freq=880, dur=0.22){
   }catch(e){ return false; }
 }
 document.getElementById('test-voice').onclick=()=>{
-  diagOn=true; diagLog=[];
+  diagOn=true;   // accumulate — never wipe, so page-load events (like 🎭 3D) survive
   dlog('voices on this device: '+(('speechSynthesis' in window)? speechSynthesis.getVoitsSafe().map(v=>v.name+'['+v.lang+'] '+(v.localService?'(local/offline)':'(NETWORK — needs google.com)')) .join(' | ') : 'NONE'));
   if(networkVoiceOnly) dlog('⚠️ Only NETWORK Google voices found. If google.com is unreachable (e.g. mainland China), they stay SILENT. Install an offline Chinese voice — steps in the chat reply.');
   const ms=document.getElementById('mic-state');
@@ -2123,7 +2127,17 @@ setTimeout(()=>{
   const vs=speechSynthesis.getVoitsSafe ? speechSynthesis.getVoitsSafe() : [];
   const zh=vs.filter(v=>v.localService && /zh|cmn|Chinese|Mandarin|普通话|中文/i.test(v.lang+' '+v.name));
   if(zh.length===0){
-    showBanner('🔇 <b>王晓梅现在说不了话——这台手机没有中文语音引擎。</b>修复：设置 → 更多设置 → 无障碍 → 文字转语音输出 → 首选引擎 → 选「小爱语音引擎」；如果没有这个选项，去小米应用商店装「讯飞语记」再选它。设置好后<b>刷新本页</b>。');
+    let engineAlive=false;
+    try{
+      const probeU=new SpeechSynthesisUtterance(' '); probeU.volume=0;
+      probeU.onstart=()=>{ engineAlive=true; };
+      speechSynthesis.speak(probeU);
+    }catch(e){}
+    setTimeout(()=>{
+      if(!engineAlive){
+        showBanner('🔇 <b>王晓梅现在说不了话——这台手机没有可用的语音引擎。</b>修复：设置 → 更多设置 → 无障碍 → 文字转语音输出 → 首选引擎 → 选「小爱语音引擎」；如果没有这个选项，去小米应用商店装「讯飞语记」再选它。设置好后<b>刷新本页</b>。');
+      }
+    }, 1600);
   }
 },2500);
 </script>
@@ -2138,6 +2152,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
 </script>
 <script type="module">
 /* 3D lifelike teacher: VRM model + three.js. Falls back to the 2D SVG avatar silently. */
+if(window.dlog) dlog('🎭 3D module starting');
 function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(c) c.remove(); const av=document.getElementById('avatar'); if(av) av.style.display=''; }
 (async function initAvatar3D(){
   try{
