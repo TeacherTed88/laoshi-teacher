@@ -681,11 +681,11 @@ speechSynthesis.onvoiceschanged = pickVoice;
 /* animated avatar controller */
 let jabber=null;
 function av(){ return document.getElementById('avatar'); }
-function setMood(m){ const h=av(); if(h) h.dataset.mood=m; }
+function setMood(m){ const h=av(); if(h) h.dataset.mood=m; if(window.__vrmMood) __vrmMood(m); }
 function getMood(){ const h=av(); return h ? h.dataset.mood : 'idle'; }
-function startJabber(){ stopJabber(); const mo=document.getElementById('mouth-open'); if(!mo) return;
+function startJabber(){ stopJabber(); if(window.__vrmSpeak) __vrmSpeak(0.6+Math.random()*0.4); const mo=document.getElementById('mouth-open'); if(!mo) return;
   jabber=setInterval(()=>{ mo.style.transform='scale('+(0.6+Math.random()*0.9).toFixed(2)+','+(0.25+Math.random()*1.8).toFixed(2)+')'; },90); }
-function stopJabber(){ if(jabber){ clearInterval(jabber); jabber=null; } const mo=document.getElementById('mouth-open'); if(mo) mo.style.transform='scale(1,1)'; }
+function stopJabber(){ if(window.__vrmSpeak) __vrmSpeak(0); if(jabber){ clearInterval(jabber); jabber=null; } const mo=document.getElementById('mouth-open'); if(mo) mo.style.transform='scale(1,1)'; }
 /* blinking — with occasional double-blink */
 (function blinkLoop(){ const go=()=>{ const L=document.querySelectorAll('#avatar .lid'); if(L.length){ L.forEach(l=>l.classList.add('blink')); setTimeout(()=>L.forEach(l=>l.classList.remove('blink')),150);
     if(Math.random()<.16){ setTimeout(()=>{ L.forEach(l=>l.classList.add('blink')); setTimeout(()=>L.forEach(l=>l.classList.remove('blink')),140); },260); } }
@@ -1175,6 +1175,7 @@ function startMeter(stream){
       an.getByteTimeDomainData(data);
       let sum=0; for(let i=0;i<data.length;i++){ const v=(data[i]-128)/128; sum+=v*v; }
       const lv=Math.min(1, Math.sqrt(sum/data.length)*4.5);
+      window.__vrmVolume=lv;
       bars.forEach((b,k)=>{ b.style.height=(8+Math.max(0, lv*46 - k*5))+'px'; });
       meterRAF=requestAnimationFrame(loop);
     };
@@ -2122,6 +2123,83 @@ addMsg('sys','Teacher Wang is online · 王老师上线了 · she will say hello
 if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
   addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
+</script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+/* 3D lifelike teacher: VRM model + three.js. Falls back to the 2D SVG avatar silently. */
+try{
+  const probe = await fetch('./laoshi.vrm', {method:'HEAD'}).catch(()=>null);
+  if(probe && probe.ok){
+    const THREE = await import('three');
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const { VRMLoaderPlugin } = await import('https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js');
+    const stage = document.querySelector('.chat-stage');
+    if(stage){
+      const canvas = document.createElement('canvas');
+      canvas.id='vrm-canvas';
+      canvas.style.cssText='width:300px;height:300px;border-radius:50%;display:block;border:2.5px solid rgba(232,195,90,.6);box-shadow:0 0 26px rgba(255,45,120,.4);background:radial-gradient(circle at 50% 35%, #331626, #120a12)';
+      stage.insertBefore(canvas, stage.querySelector('.stage-name'));
+      const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+      renderer.setPixelRatio(Math.min(devicePixelRatio||1, 1.5));
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 30);
+      camera.position.set(0, 1.32, 1.55); camera.lookAt(0, 1.28, 0);
+      scene.add(new THREE.AmbientLight(0xfff2e0, 1.0));
+      const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(1.2, 2.2, 2.0); scene.add(key);
+      const rim = new THREE.DirectionalLight(0xff2d78, 0.9); rim.position.set(-2.0, 1.2, -1.4); scene.add(rim);
+      const loader = new GLTFLoader();
+      loader.register((parser)=>new VRMLoaderPlugin(parser));
+      loader.loadAsync('./laoshi.vrm').then((gltf)=>{
+        const vrm = gltf.userData.vrm;
+        scene.add(vrm.scene);
+        const av = document.getElementById('avatar'); if(av) av.style.display='none';
+        const fit=()=>{ const w=canvas.clientWidth||300, h=canvas.clientHeight||300; renderer.setSize(w,h,false); };
+        fit(); addEventListener('resize', fit);
+        const clock = new THREE.Clock();
+        const mouthNames=['aa','a'], blinkNames=['blink'];
+        const moodMap={happy:['happy','Joy'], angry:['angry','Angry'], sad:['sad','Sorrow'], relaxed:['relaxed','Fun']};
+        const moodVals={happy:0,angry:0,sad:0,relaxed:0};
+        let speakCur=0, speakTarget=0, blinkT=2.2, blinkPhase=0, moodTarget='idle';
+        window.__vrmSpeak=(v)=>{ speakTarget=v; };
+        window.__vrmMood=(m)=>{ moodTarget=(m==='listening'||m==='curious')?'relaxed':m; };
+        function setExpr(names, v){
+          const em=vrm.expressionManager; if(!em||v<=0.004){ return; }
+          for(const n of names){ try{ em.setValue(n, Math.min(1,v)); return; }catch(e){} }
+        }
+        function clearExpr(names){ const em=vrm.expressionManager; if(!em) return; for(const n of names){ try{ em.setValue(n, 0); }catch(e){} } }
+        renderer.setAnimationLoop(()=>{
+          const dt=Math.min(clock.getDelta(),0.1), t=clock.elapsedTime;
+          speakCur += (speakTarget-speakCur)*Math.min(1, dt*12);
+          const vol = (window.__vrmVolume||0);
+          const open = speakCur>0.02 ? Math.min(1, speakCur*0.55 + vol*0.6) : 0;
+          clearExpr(mouthNames); setExpr(mouthNames, open);
+          blinkT-=dt; if(blinkT<=0){ blinkPhase=0.14; blinkT=1.7+Math.random()*3.4; }
+          let b=0; if(blinkPhase>0){ blinkPhase-=dt; b=Math.sin(Math.PI*Math.max(0,blinkPhase)/0.14); }
+          clearExpr(blinkNames); setExpr(blinkNames, b);
+          for(const k of Object.keys(moodMap)){
+            const target=(moodTarget===k)?1:0;
+            moodVals[k]+=(target-moodVals[k])*Math.min(1,dt*6);
+            clearExpr(moodMap[k]); setExpr(moodMap[k], moodVals[k]);
+          }
+          if(vrm.humanoid){
+            const head = vrm.humanoid.getNormalizedBoneNode ? (vrm.humanoid.getNormalizedBoneNode('head')||vrm.humanoid.getBoneNode('head')) : vrm.humanoid.getBoneNode('head');
+            if(head){
+              head.rotation.x = Math.sin(t*1.2)*0.02 + (speakCur>0.02 ? Math.sin(t*6.5)*0.02 : 0);
+              head.rotation.y = Math.sin(t*0.6)*0.06 + ((window.__vrmLook||0)*0.3);
+              head.rotation.z = Math.sin(t*0.85)*0.02 + (moodTarget==='angry' ? Math.sin(t*9)*0.02 : 0);
+            }
+          }
+          if(vrm.lookAt){ vrm.lookAt.target = camera; }
+          vrm.update(dt);
+          renderer.render(scene, camera);
+        });
+        document.getElementById('mic-state') && (document.getElementById('mic-state').textContent='🎭 3D 王老师已上线 · laoshi.vrm');
+      }).catch(()=>{ /* model parse failed — 2D avatar remains */ });
+    }
+  }
+}catch(e){ /* no 3D — 2D avatar remains */ }
 </script>
 </body>
 </html>
