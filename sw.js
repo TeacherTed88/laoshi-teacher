@@ -1,6 +1,6 @@
-const CACHE='yuban-v4';
+const CACHE='yuban-v6';
 self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./icon-192.png','./icon-512.png','./manifest.webmanifest'])));
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./laoshi.vrm','./icon-192.png','./icon-512.png','./manifest.webmanifest']).catch(()=>c.addAll(['./','./index.html']))));
   self.skipWaiting();
 });
 self.addEventListener('activate',e=>{
