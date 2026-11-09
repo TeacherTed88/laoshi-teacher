@@ -1201,7 +1201,7 @@ function stopMeter(){
 }
 /* ===== 讯飞 iFlytek real-time recognition — domestic servers, no VPN, no Google ===== */
 let sttCfg=null; try{ sttCfg=JSON.parse(lsGet('iflytek','null')); }catch(e){}
-setTimeout(()=>{ if(window.dlog) dlog('讯飞 config: '+(sttCfg&&sttCfg.appId?'saved ✓':'MISSING — paste in AI Brain → 🇨🇳 → Save')); }, 3000);
+setTimeout(()=>{ if(window.dlog) dlog('讯飞 config: '+(sttCfg&&sttCfg.appId?'saved ✓ (appId='+sttCfg.appId+')':'MISSING — paste in AI Brain → 🇨🇳 → Save')+' key='+uk('iflytek')); }, 3000);
 let iflytekSession=null, iflytekActive=false;
 function u8ToB64(u8){ let s=''; for(let k=0;k<u8.length;k+=0x8000){ s+=String.fromCharCode.apply(null,u8.subarray(k,k+0x8000)); } return btoa(s); }
 async function iflytekAuthUrl(){
@@ -1268,6 +1268,18 @@ function iflytekFinish(){
   if(!sess){ finishRec(); return; }
   try{ sess.ws.send(JSON.stringify({data:{status:2, format:'audio/L16;rate=16000', encoding:'raw', audio:''}})); }catch(e){}
   setTimeout(()=>{ if(!sess.closed){ sess.closed=true; try{ sess.ws.close(); }catch(e){} } }, 4000);
+}
+async function testIflytek(){
+  if(!sttCfg||!sttCfg.appId){ aiStatus('❌ 讯飞 not configured — paste codes first'); return; }
+  aiStatus('🌐 testing 讯飞 connection…');
+  try{
+    const url=await iflytekAuthUrl();
+    const ws=new WebSocket(url);
+    await new Promise((resolve,reject)=>{ const t=setTimeout(()=>reject(new Error('timeout')),6000); ws.onopen=()=>{ clearTimeout(t); resolve(); }; ws.onerror=(e)=>{ clearTimeout(t); reject(new Error('ws error')); }; });
+    ws.close();
+    aiStatus('✅ 讯飞 connected — credentials OK, 国内识别可用');
+    if(window.dlog) dlog('讯飞 test: connected ✓');
+  }catch(e){ aiStatus('❌ 讯飞 test failed: '+((e&&e.message)||e)); if(window.dlog) dlog('讯飞 test: failed — '+((e&&e.message)||e)); }
 }
 
 /* hold-to-talk: press & hold the mic while speaking, release to stop & send */
@@ -1664,11 +1676,16 @@ function aiSaveFromUI(){
   const vision=(document.getElementById('ai-vision')||{}).value||'';
   aiCfg={base,key,model:model||'deepseek-chat',vision:vision.trim()};
   const ifly={ appId:(document.getElementById('ifly-appid')||{value:''}).value.trim(), apiKey:(document.getElementById('ifly-key')||{value:''}).value.trim(), apiSecret:(document.getElementById('ifly-secret')||{value:''}).value.trim() };
-  if(ifly.appId&&ifly.apiKey&&ifly.apiSecret){ sttCfg=ifly; lsSet('iflytek',JSON.stringify(sttCfg)); }
+  const iflyHas=!!(ifly.appId&&ifly.apiKey&&ifly.apiSecret);
+  if(iflyHas){ sttCfg=ifly; lsSet('iflytek',JSON.stringify(sttCfg)); }
   else { sttCfg=null; lsDel('iflytek'); }
   lsSet('yuban_ai',JSON.stringify(aiCfg));
   convo=[];
-  aiStatus('saved ✓ testing connection…'); aiTest(); renderProfile(); aiFillUI();
+  /* verify persistence immediately */
+  const verify=JSON.parse(lsGet('iflytek','null')||'null');
+  const iflyOk=verify&&verify.appId?'saved ✓':'MISSING';
+  if(window.dlog) dlog('讯飞 save: fields='+(iflyHas?'3/3':'0')+' persist='+iflyOk+' key='+uk('iflytek'));
+  aiStatus('saved ✓ AI testing… 讯飞 '+iflyOk); aiTest(); renderProfile(); aiFillUI();
 }
 async function aiTest(){
   if(!aiCfg){ aiStatus('no key saved yet'); return; }
@@ -1906,7 +1923,7 @@ function renderProfile(){
   +'<input id="ifly-appid" placeholder="讯飞 AppID" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ifly-key" placeholder="讯飞 APIKey" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem">'
   +'<input id="ifly-secret" type="text" autocomplete="off" placeholder="讯飞 APISecret" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd2ba;margin-top:6px;box-sizing:border-box;font-size:.8rem;-webkit-text-security:disc">'
-  +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="nav-btn" onclick="aiSaveFromUI()">💾 Save</button><button type="button" class="nav-btn" onclick="aiTest()">🔌 Test</button><button type="button" class="nav-btn" onclick="aiClear()" style="opacity:.7">Remove</button></div>'
+  +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="nav-btn" onclick="aiSaveFromUI()">💾 Save</button><button type="button" class="nav-btn" onclick="aiTest()">🔌 Test AI</button><button type="button" class="nav-btn" onclick="testIflytek()">🇨🇳 Test 讯飞</button><button type="button" class="nav-btn" onclick="aiClear()" style="opacity:.7">Remove</button></div>'
   +'<div id="ai-status" style="font-size:.74rem;margin-top:8px;color:var(--mist)">'+(aiCfg&&aiCfg.key?('configured: '+aiCfg.base+' · '+aiCfg.model):'')+'</div></div>' ;
   aiFillUI();
   const ub=document.getElementById("ai-base"); if(ub) ub.onchange=()=>{ document.getElementById("ai-url").style.display = ub.value==="custom"?"block":"none"; };
@@ -2178,11 +2195,14 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
     /* try CDNs in order: domestic-friendly first; import() can HANG on a filtered network, hence the timeout race */
     const sources=[
       {three:'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
-       gltf:'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+       gltf:'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js',
+       vrm:'https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js'},
       {three:'https://unpkg.com/three@0.160.0/build/three.module.js',
-       gltf:'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+       gltf:'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js',
+       vrm:'https://unpkg.com/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js'},
       {three:'https://cdn.staticfile.org/three.js/0.160.0/three.module.min.js',
-       gltf:'https://cdn.staticfile.org/three.js/0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+       gltf:'https://cdn.staticfile.org/three.js/0.160.0/examples/jsm/loaders/GLTFLoader.js',
+       vrm:'https://unpkg.com/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js'},
     ];
     let ok=false, lastErr='';
     for(const src of sources){
@@ -2190,7 +2210,7 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
         if(window.dlog) dlog('🎭 trying CDN: '+src.three.split('/')[2]);
         THREE = await withTimeout(import(/* @vite-ignore */ src.three), 8000);
         GLTFLoader = (await withTimeout(import(/* @vite-ignore */ src.gltf), 8000)).GLTFLoader;
-        VRMLoaderPlugin = (await withTimeout(import('https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.1.0/lib/three-vrm.module.min.js'), 8000)).VRMLoaderPlugin;
+        VRMLoaderPlugin = (await withTimeout(import(/* @vite-ignore */ src.vrm), 8000)).VRMLoaderPlugin;
         ok=true; break;
       }catch(err){ lastErr=(err&&err.message)||String(err); if(window.dlog) dlog('🎭 CDN failed ('+lastErr+') — trying next'); }
     }
