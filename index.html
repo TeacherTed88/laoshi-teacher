@@ -360,7 +360,13 @@ body.talking{overflow:hidden;}   /* no page scroll / toolbar collapse while hold
   .chat-stage .avatar{width:168px;height:168px;}
   .stage-ring{width:196px;height:196px;top:22px;}
   .mic-row .mic-btn{width:76px;height:76px;font-size:1.7rem;}
+  #vrm-canvas{width:200px !important;height:200px !important;}
+  .chat-stage.vrm-active{padding:14px 16px 6px;}
+  .chat-stage.vrm-active .stage-name,.chat-stage.vrm-active .stage-pill{display:none;}
 }
+#vrm-canvas{width:260px;height:260px;border-radius:50%;display:block;border:2.5px solid rgba(232,195,90,.6);box-shadow:0 0 26px rgba(255,45,120,.4);background:radial-gradient(circle at 50% 35%, #331626, #120a12);}
+.chat-stage.vrm-active{padding:18px 20px 8px;}
+.chat-stage.vrm-active .stage-name,.chat-stage.vrm-active .stage-pill{display:none;}
 .msg.teacher .fix{display:block;font-size:.82rem;color:#8a7f6a;margin-top:6px;background:#f6efdd;border-radius:8px;padding:5px 9px;}
 .chunk-in{animation:chunkIn .3s ease;}
 @keyframes chunkIn{from{opacity:.15}to{opacity:1}}
@@ -2250,7 +2256,7 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
     /* success — now build the stage */
     const canvas = document.createElement('canvas');
     canvas.id='vrm-canvas';
-    canvas.style.cssText='width:300px;height:300px;border-radius:50%;display:block;border:2.5px solid rgba(232,195,90,.6);box-shadow:0 0 26px rgba(255,45,120,.4);background:radial-gradient(circle at 50% 35%, #331626, #120a12)';
+    stage.classList.add('vrm-active');
     stage.insertBefore(canvas, stage.querySelector('.stage-name'));
     const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio||1, 1.5));
@@ -2262,13 +2268,13 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
     const rim = new THREE.DirectionalLight(0xff2d78, 0.9); rim.position.set(-2.0, 1.2, -1.4); scene.add(rim);
     scene.add(vrm.scene);
     const av = document.getElementById('avatar'); if(av) av.style.display='none';
-    const fit=()=>{ const w=canvas.clientWidth||300, h=canvas.clientHeight||300; renderer.setSize(w,h,false); };
+    const fit=()=>{ const r=canvas.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); };
     fit(); addEventListener('resize', fit);
     const clock = new THREE.Clock();
     const mouthNames=['aa','a'], blinkNames=['blink'];
     const moodMap={happy:['happy','Joy'], angry:['angry','Angry'], sad:['sad','Sorrow'], relaxed:['relaxed','Fun']};
     const moodVals={happy:0,angry:0,sad:0,relaxed:0};
-    let speakCur=0, speakTarget=0, blinkT=1.8, blinkPhase=0, moodTarget='idle';
+    let speakCur=0, speakTarget=0, blinkT=1.6, blinkPhase=0, moodTarget='idle';
     window.__vrmSpeak=(v)=>{ speakTarget=v; };
     window.__vrmMood=(m)=>{ moodTarget=(m==='listening'||m==='curious')?'relaxed':m; };
     function bone(name){
@@ -2280,26 +2286,33 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
       for(const n of names){ try{ em.setValue(n, Math.min(1,v)); return; }catch(e){} }
     }
     function clearExpr(names){ const em=vrm.expressionManager; if(!em) return; for(const n of names){ try{ em.setValue(n, 0); }catch(e){} } }
-    /* relaxed initial pose — arms down, not T-pose */
-    const relax={leftUpperArm:{z:-0.42,x:0.12},rightUpperArm:{z:0.42,x:0.12},leftLowerArm:{z:-0.32,x:-0.08},rightLowerArm:{z:0.32,x:-0.08},leftHand:{z:-0.08,y:0.04},rightHand:{z:0.08,y:-0.04}};
-    for(const[n,r] of Object.entries(relax)){ const b=bone(n); if(b){ b.rotation.x=r.x||0; b.rotation.z=r.z||0; b.rotation.y=r.y||0; } }
-    /* cache bones for animation */
-    const head=bone('head'), neck=bone('neck'), chest=bone('chest'), spine=bone('spine');
+    /* relaxed pose — arms DOWN from T-pose (T-pose is horizontal; we need ~-80deg z to bring to side) */
+    const pose={
+      leftShoulder:{x:0.08,z:-0.06}, rightShoulder:{x:0.08,z:0.06},
+      leftUpperArm:{x:0.18,z:-1.38}, rightUpperArm:{x:0.18,z:1.38},
+      leftLowerArm:{x:-0.15,z:-0.42}, rightLowerArm:{x:-0.15,z:0.42},
+      leftHand:{x:0.06,z:-0.12,y:0.08}, rightHand:{x:0.06,z:0.12,y:-0.08},
+    };
+    for(const[n,r] of Object.entries(pose)){ const b=bone(n); if(b){ b.rotation.x=r.x||0; b.rotation.z=r.z||0; b.rotation.y=r.y||0; } }
+    /* cache bones */
+    const head=bone('head'), neck=bone('neck'), chest=bone('chest'), spine=bone('spine'), hips=bone('hips');
+    const lSh=bone('leftShoulder'), rSh=bone('rightShoulder');
     const lArm=bone('leftUpperArm'), rArm=bone('rightUpperArm'), lFore=bone('leftLowerArm'), rFore=bone('rightLowerArm'), lHand=bone('leftHand'), rHand=bone('rightHand');
     renderer.setAnimationLoop(()=>{
       const dt=Math.min(clock.getDelta(),0.1), t=clock.elapsedTime;
-      /* breathing */
-      const br=Math.sin(t*1.7)*0.5+0.5;
-      if(chest) chest.scale.setScalar(1+br*0.014);
-      if(spine) spine.position.y=Math.sin(t*1.7)*0.004;
-      /* mouth: more responsive, slight idle movement when quiet */
-      speakCur+=(speakTarget-speakCur)*Math.min(1,dt*16);
+      /* breathing — chest + spine + subtle hips */
+      const br=Math.sin(t*1.5)*0.5+0.5;
+      if(chest) chest.scale.setScalar(1+br*0.022);
+      if(spine){ spine.position.y=Math.sin(t*1.5)*0.006; spine.rotation.x=Math.sin(t*1.5)*0.008; }
+      if(hips) hips.rotation.z=Math.sin(t*0.7)*0.006;
+      /* mouth */
+      speakCur+=(speakTarget-speakCur)*Math.min(1,dt*18);
       const vol=(window.__vrmVolume||0);
-      const open=speakCur>0.02?Math.min(1,speakCur*0.72+vol*0.85):Math.min(0.06,vol*0.25);
+      const open=speakCur>0.02?Math.min(1,speakCur*0.78+vol*0.9):Math.min(0.08,vol*0.3);
       clearExpr(mouthNames); setExpr(mouthNames, open);
       /* blink */
-      blinkT-=dt; if(blinkT<=0){ blinkPhase=0.13+Math.random()*0.03; blinkT=1.4+Math.random()*3.2; }
-      let bk=0; if(blinkPhase>0){ blinkPhase-=dt; bk=Math.sin(Math.PI*Math.max(0,blinkPhase)/(0.13+0.03)); }
+      blinkT-=dt; if(blinkT<=0){ blinkPhase=0.12+Math.random()*0.04; blinkT=1.2+Math.random()*2.8; }
+      let bk=0; if(blinkPhase>0){ blinkPhase-=dt; bk=Math.sin(Math.PI*Math.max(0,blinkPhase)/0.14); }
       clearExpr(blinkNames); setExpr(blinkNames, bk);
       /* mood */
       for(const k of Object.keys(moodMap)){
@@ -2307,26 +2320,29 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
         moodVals[k]+=(target-moodVals[k])*Math.min(1,dt*5);
         clearExpr(moodMap[k]); setExpr(moodMap[k], moodVals[k]);
       }
-      /* head: organic idle (multi-frequency) + speech nods + mood */
+      /* head: much more alive */
       if(head){
-        const ix=Math.sin(t*0.85)*0.018+Math.sin(t*1.6)*0.009+Math.sin(t*2.4)*0.004;
-        const iy=Math.sin(t*0.5)*0.045+Math.sin(t*1.2)*0.018+Math.sin(t*2.1)*0.006;
-        const iz=Math.sin(t*0.7)*0.014+Math.sin(t*1.8)*0.006;
-        const nod=speakCur>0.02?Math.sin(t*5.2)*0.03+Math.sin(t*10)*0.012:0;
-        const mTilt=moodTarget==='angry'?Math.sin(t*7.5)*0.018:(moodTarget==='happy'?Math.sin(t*1.1)*0.012:0);
+        const ix=Math.sin(t*0.75)*0.035+Math.sin(t*1.4)*0.018+Math.sin(t*2.2)*0.008;
+        const iy=Math.sin(t*0.42)*0.075+Math.sin(t*1.1)*0.028+Math.sin(t*1.9)*0.012;
+        const iz=Math.sin(t*0.6)*0.025+Math.sin(t*1.6)*0.010;
+        const nod=speakCur>0.02?Math.sin(t*4.8)*0.045+Math.sin(t*9.5)*0.018:0;
+        const mTilt=moodTarget==='angry'?Math.sin(t*7)*0.025:(moodTarget==='happy'?Math.sin(t*1.0)*0.018:0);
         head.rotation.x=ix+nod+mTilt;
-        head.rotation.y=iy+(speakCur>0.02?Math.sin(t*2.8)*0.018:0);
-        head.rotation.z=iz+(moodTarget==='angry'?Math.sin(t*6.5)*0.015:0);
+        head.rotation.y=iy+(speakCur>0.02?Math.sin(t*2.6)*0.028:0);
+        head.rotation.z=iz+(moodTarget==='angry'?Math.sin(t*6)*0.022:0);
       }
-      /* neck: lazy follow */
-      if(neck){ neck.rotation.x=Math.sin(t*0.6)*0.01; neck.rotation.y=Math.sin(t*0.4)*0.022; neck.rotation.z=Math.sin(t*0.55)*0.007; }
-      /* arms: subtle sway + speech gesture hints */
-      if(lArm){ lArm.rotation.z=-0.42+Math.sin(t*0.75)*0.018+(speakCur>0.02?Math.sin(t*2.0)*0.025:0); lArm.rotation.x=0.12+Math.sin(t*0.55)*0.01; }
-      if(rArm){ rArm.rotation.z=0.42+Math.sin(t*0.85+1.2)*0.018+(speakCur>0.02?Math.sin(t*2.2)*0.025:0); rArm.rotation.x=0.12+Math.sin(t*0.65+0.8)*0.01; }
-      if(lFore){ lFore.rotation.z=-0.32+Math.sin(t*1.05)*0.015; lFore.rotation.x=-0.08+Math.sin(t*0.8)*0.008; }
-      if(rFore){ rFore.rotation.z=0.32+Math.sin(t*1.15+1.1)*0.015; rFore.rotation.x=-0.08+Math.sin(t*0.9+0.6)*0.008; }
-      if(lHand){ lHand.rotation.z=-0.08+Math.sin(t*1.4)*0.025; lHand.rotation.y=0.04+Math.sin(t*1.0)*0.012; }
-      if(rHand){ rHand.rotation.z=0.08+Math.sin(t*1.5+1.0)*0.025; rHand.rotation.y=-0.04+Math.sin(t*1.1+0.7)*0.012; }
+      /* neck */
+      if(neck){ neck.rotation.x=Math.sin(t*0.55)*0.022; neck.rotation.y=Math.sin(t*0.38)*0.045; neck.rotation.z=Math.sin(t*0.5)*0.015; }
+      /* shoulders */
+      if(lSh){ lSh.rotation.x=0.08+Math.sin(t*0.65)*0.012; lSh.rotation.z=-0.06+Math.sin(t*0.8)*0.008; }
+      if(rSh){ rSh.rotation.x=0.08+Math.sin(t*0.7+0.9)*0.012; rSh.rotation.z=0.06+Math.sin(t*0.85+1.1)*0.008; }
+      /* arms: big natural sway from relaxed pose */
+      if(lArm){ lArm.rotation.z=-1.38+Math.sin(t*0.6)*0.035+(speakCur>0.02?Math.sin(t*1.8)*0.055:0); lArm.rotation.x=0.18+Math.sin(t*0.45)*0.018+(speakCur>0.02?Math.sin(t*2.1)*0.03:0); }
+      if(rArm){ rArm.rotation.z=1.38+Math.sin(t*0.72+1.3)*0.035+(speakCur>0.02?Math.sin(t*1.9)*0.055:0); rArm.rotation.x=0.18+Math.sin(t*0.55+0.7)*0.018+(speakCur>0.02?Math.sin(t*2.3)*0.03:0); }
+      if(lFore){ lFore.rotation.z=-0.42+Math.sin(t*0.9)*0.028+Math.sin(t*1.7)*0.015; lFore.rotation.x=-0.15+Math.sin(t*0.65)*0.015; }
+      if(rFore){ rFore.rotation.z=0.42+Math.sin(t*1.0+1.2)*0.028+Math.sin(t*1.8+0.8)*0.015; rFore.rotation.x=-0.15+Math.sin(t*0.75+0.5)*0.015; }
+      if(lHand){ lHand.rotation.z=-0.12+Math.sin(t*1.2)*0.04+Math.sin(t*2.4)*0.018; lHand.rotation.y=0.08+Math.sin(t*0.9)*0.022; }
+      if(rHand){ rHand.rotation.z=0.12+Math.sin(t*1.3+1.0)*0.04+Math.sin(t*2.5+0.6)*0.018; rHand.rotation.y=-0.08+Math.sin(t*1.0+0.7)*0.022; }
       if(vrm.lookAt){ vrm.lookAt.target=camera; }
       vrm.update(dt);
       renderer.render(scene,camera);
