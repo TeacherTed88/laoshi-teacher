@@ -247,10 +247,15 @@ button{touch-action:manipulation;}
   .h-sign{font-size:24px;letter-spacing:6px;}
   .neon-red,.neon-gold,.neon-cyan,.neon-pink,.neon-green,.neon-orange{font-size:21px;}
   #city svg{height:38vh;min-height:260px;}
+  #vrm-canvas{width:200px !important;height:200px !important;}
+  .chat-stage.vrm-active{padding:14px 16px 6px;}
 }
 @media(max-width:400px){
   .vocab-grid{grid-template-columns:1fr;}
   }
+#vrm-canvas{width:260px;height:260px;border-radius:50%;display:block;border:2.5px solid rgba(232,195,90,.6);box-shadow:0 0 26px rgba(255,45,120,.4);background:radial-gradient(circle at 50% 35%, #331626, #120a12);}
+.chat-stage.vrm-active{padding:18px 20px 8px;}
+.chat-stage.vrm-active .stage-name,.chat-stage.vrm-active .stage-pill{display:none;}
 #diag{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:200;width:min(560px,92vw);
   background:#0d0812;border:1px solid var(--gold);border-radius:14px;padding:16px 20px;font-size:.78rem;color:#d8f0d0;
   box-shadow:0 20px 60px rgba(0,0,0,.7);display:none;line-height:1.7;white-space:pre-wrap;font-family:monospace;max-height:60vh;overflow-y:auto;}
@@ -2223,17 +2228,10 @@ if('serviceWorker' in navigator){
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
 <script type="module">
-/* 3D avatar DISABLED — user prefers clean 2D + reliable performance */
-if(window.dlog) dlog('🎭 3D: disabled by user preference');
-(function(){})();
-</script>
-<script type="module">
 /* 3D lifelike teacher: VRM model + three.js. Falls back to the 2D SVG avatar silently. */
-/* DISABLED — early return to prevent any 3D loading */
-if(window.dlog) dlog('🎭 3D module: OFF');
+if(window.dlog) dlog('🎭 3D module starting');
 function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(c) c.remove(); const av=document.getElementById('avatar'); if(av) av.style.display=''; }
 (async function initAvatar3D(){
-  return; // 3D disabled
   try{
     if(window.dlog) dlog('🎭 probing laoshi.vrm…');
     const probe = await fetch('./laoshi.vrm', {method:'HEAD'}).catch(()=>null);
