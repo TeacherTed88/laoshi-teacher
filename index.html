@@ -2193,8 +2193,14 @@ setTimeout(()=>{
 </script>
 <script>
 // installable-app support: register offline service worker (https/localhost only)
-if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
-  addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+// FORCE UPDATE: unregister old SW so new files are always fetched fresh
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>{ try{r.unregister();}catch(e){} });
+    if(location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1'){
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  });
 }
 </script>
 <script type="importmap">
