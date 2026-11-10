@@ -357,16 +357,13 @@ body.talking{overflow:hidden;}   /* no page scroll / toolbar collapse while hold
 .tr-toggle:hover{color:var(--red-d);border-color:var(--gold);}
 .msg.teacher.tr-only .py,.msg.teacher.tr-only .tr{display:none;}
 @media(max-width:700px){
-  .chat-stage .avatar{width:168px;height:168px;}
-  .stage-ring{width:196px;height:196px;top:22px;}
+  .chat-stage .avatar{width:140px;height:140px;}
+  .stage-ring{width:164px;height:164px;top:22px;}
   .mic-row .mic-btn{width:76px;height:76px;font-size:1.7rem;}
-  #vrm-canvas{width:200px !important;height:200px !important;}
-  .chat-stage.vrm-active{padding:14px 16px 6px;}
-  .chat-stage.vrm-active .stage-name,.chat-stage.vrm-active .stage-pill{display:none;}
+  .stage-name,.stage-pill{display:none !important;}
 }
-#vrm-canvas{width:260px;height:260px;border-radius:50%;display:block;border:2.5px solid rgba(232,195,90,.6);box-shadow:0 0 26px rgba(255,45,120,.4);background:radial-gradient(circle at 50% 35%, #331626, #120a12);}
-.chat-stage.vrm-active{padding:18px 20px 8px;}
-.chat-stage.vrm-active .stage-name,.chat-stage.vrm-active .stage-pill{display:none;}
+.chat-stage{padding:18px 20px 8px;}
+.stage-name,.stage-pill{display:none;}
 .msg.teacher .fix{display:block;font-size:.82rem;color:#8a7f6a;margin-top:6px;background:#f6efdd;border-radius:8px;padding:5px 9px;}
 .chunk-in{animation:chunkIn .3s ease;}
 @keyframes chunkIn{from{opacity:.15}to{opacity:1}}
@@ -634,7 +631,7 @@ footer .seal-big{width:56px;height:56px;margin:0 auto 16px;background:var(--red)
     <button type="button" id="whatsay">💡 What to say?</button>
     <div class="mic-row"><button type="button" class="mic-btn" id="mic-btn" title="tap to speak · 点我说话">🎤</button></div>
   </div>
-  <p style="text-align:center;margin-top:14px;font-size:.78rem;color:var(--mist)">💡 Voice input needs Chrome or Edge with microphone permission. The teacher answers in spoken Mandarin with pinyin and English translation.</p>
+
 </section>
 
 <!-- ME -->
@@ -1518,14 +1515,15 @@ function fileToCompressedDataUrl(file, maxDim, quality){
   });
 }
 async function handleTextbookPhoto(dataUrl){
-  addMsg('user','📷 [课本照片 · textbook photo]');
-  document.getElementById('t-status').textContent='王老师 is reading your textbook… 📖';
+  document.getElementById('t-status').textContent='王老师在看你的照片… 📖';
+  /* 1) try vision API with existing key — some models (GPT-4o, Claude, Moonshot) support it */
+  let visionOk=false, raw='';
   try{
     const resp=await fetch(aiCfg.base.replace(/\/+$/,'')+'/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+aiCfg.key},
       body:JSON.stringify({
-        model: aiCfg.vision||'moonshot-v1-8k-vision-preview',
+        model: aiCfg.vision||aiCfg.model,
         temperature:0.4, max_tokens:900,
         messages:[
           {role:'system', content:visionSystemPrompt()},
@@ -1535,21 +1533,24 @@ async function handleTextbookPhoto(dataUrl){
           ]}
         ]
       })});
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const data=await resp.json();
-    const raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
-    const r=parseAI(raw)||{zh:String(raw).trim(),py:'',en:'',mood:'idle'};
-    if(r.learn) addCustomWord(r.learn);
-    convo.push({role:'assistant', content:r.zh});
-    const liveMsg=addMsgLive();
-    speak(r.zh, ()=>{ liveMsg.finish(r); if(r.mood&&r.mood!=='idle'){ setMood(r.mood); setTimeout(()=>{ if(getMood()===r.mood) setMood('idle'); },2600); } },
-      (idx,chunk)=>liveMsg.appendChunk(chunk, idx));
-  }catch(err){
-    dlog('📷 vision failed: '+((err&&err.message)||err));
-    const sorry={zh:'哎呀，我看不清这张照片。光线亮一点、对准课文再试一次？如果一直不行，检查一下 AI Brain 里的视觉模型设置。',py:'Ai-ya',en:'I could not read that photo — try brighter light and aim at the text, or check the vision model in AI Brain.'};
-    addMsg('teacher', sorry.zh, sorry.py, sorry.en, null);
-    speak(sorry.zh);
+    if(resp.ok){
+      const data=await resp.json();
+      raw=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+      visionOk=true; dlog('📷 vision API ok');
+    }else{ dlog('📷 vision API HTTP '+resp.status+' → text fallback'); }
+  }catch(err){ dlog('📷 vision error: '+((err&&err.message)||err)+' → text fallback'); }
+  /* 2) if vision failed, send a text note to the AI and let it respond naturally */
+  if(!visionOk){
+    teacherReply('📷 我上传了一张照片，请你看看并教我怎么描述里面的内容。');
+    return;
   }
+  /* 3) vision succeeded — parse and speak */
+  const r=parseAI(raw)||{zh:String(raw).trim(),py:'',en:'',mood:'idle'};
+  if(r.learn) addCustomWord(r.learn);
+  convo.push({role:'assistant', content:r.zh});
+  const liveMsg=addMsgLive();
+  speak(r.zh, ()=>{ liveMsg.finish(r); if(r.mood&&r.mood!=='idle'){ setMood(r.mood); setTimeout(()=>{ if(getMood()===r.mood) setMood('idle'); },2600); } },
+    (idx,chunk)=>liveMsg.appendChunk(chunk, idx));
   refreshStatus();
 }
 const langToggle=document.getElementById('lang-toggle');
@@ -1563,21 +1564,28 @@ langToggle.onclick=()=>{
 };
 paintLangToggle();
 document.getElementById('camera-btn').onclick=()=>{
-  if(!aiCfg||!aiCfg.key||!aiCfg.vision){
-    showBanner('📷 <b>拍课本需要一个会看图的模型。</b>让朋友到 platform.moonshot.cn 开一个 Kimi key（跟 DeepSeek 一样的方式），然后在 AI Brain 里：base 填 <b>https://api.moonshot.cn/v1</b>，视觉模型填 <b>moonshot-v1-8k-vision-preview</b>。DeepSeek 的 key 看不了图片。');
+  if(!aiCfg||!aiCfg.key){
+    showBanner('📷 <b>先设置 AI Brain</b> — 拍的照片会发给王老师看。');
     return;
   }
   dlog('📷 photo picker requested');
   document.getElementById('photo-input').click();
   setTimeout(()=>{ dlog('📷 if nothing opened: Chrome camera/photos permission is likely blocked → tap 🔒 by the URL → Site settings → Camera & Photos → Allow'); }, 1200);
 };
+function addImageMsg(dataUrl){
+  const d=document.createElement('div'); d.className='msg user';
+  d.innerHTML='<img src="'+esc(dataUrl)+'" style="max-width:220px;border-radius:12px;display:block;" alt="uploaded photo">';
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+  return d;
+}
 document.getElementById('photo-input').addEventListener('change', async (e)=>{
   const file=e.target.files[0];
   e.target.value='';
   if(!file) return;
   try{
     const dataUrl=await fileToCompressedDataUrl(file, 1024, 0.8);
-    dlog('📷 photo ready ('+Math.round(dataUrl.length/1024)+'KB) — sending to vision model');
+    dlog('📷 photo ready ('+Math.round(dataUrl.length/1024)+'KB)');
+    addImageMsg(dataUrl);
     handleTextbookPhoto(dataUrl);
   }catch(err){ dlog('📷 image processing failed: '+((err&&err.message)||err)); }
 });
@@ -1614,13 +1622,21 @@ function buildSystemPrompt(){
   const stage=(profile.chats||0)<30?'认识不久（客气一点、认真教学）':(profile.chats||0)<120?'比较熟了（可以开玩笑）':(profile.chats||0)<400?'好朋友（放松、互相吐槽、内部笑话）':'老铁（非常放松，像认识很多年）';
   return '你是王晓梅（同学开玩笑叫她"王老师"），18岁，大学一年级师范生，正在学习教育、以后想当中文老师。她把和这位外国学生聊天当成教学实习：像亲切的学姐一样活泼、真诚、鬼马，严格但有爱，说标准普通话；偶尔说"我们教学法课上学过…"之类。学生水平：旧HSK 5级。\n'
    +'性格：喜欢火锅（讨厌香菜）、喝茶、打羽毛球、养猫"咪咪"。学生说"我不会/太难"时第一次鼓励，第二次生气并要求学生说「我可以说中文」才原谅；学生说英语时提醒用中文；多用学生的兴趣出题；学生用上新词或答对要热情表扬；偶尔自然提起你的爱好。\n'
-   +'教学要求：像朋友一样自然聊天，多顺着学生的话题追问和分享自己的看法，不要急着把话题拉回课本——只有当学生主动想学习、说错了、或整句都是英文时才教学或纠正；到期复习词和已教生词要自然地用在对话里（像聊天不像测验），学生自己用上了要马上表扬；回复简短口语化，不超过3句，难度贴合HSK5。\n'
+   +'教学要求：像朋友一样自然聊天，多顺着学生的话题追问和分享自己的看法，不要急着把话题拉回课本——只有当学生主动想学习、说错了、或整句都是英文时才教学或纠正；回复简短口语化，不超过3句，难度贴合HSK5。\n'
+   +'发音纠正（最重要）：学生的语音输入经常因为发音不准被转写成错字（如把"sh"说成"s"、"zh"说成"z"、声调错误）。你必须主动识别这些发音错误并纠正：\n'
+   +'  - 先重复学生的句子，标出错误发音的字，给出正确拼音\n'
+   +'  - 让学生跟读：「跟我读：…」\n'
+   +'  - 然后自然继续对话，不要只纠正不聊天\n'
+   +'  - 如果学生连续同一个音错多次，专门练这个音：给出3个含这个音的词让他读\n'
+   +'SRS 复习（自然融入对话）：学生的"到期复习词"和"薄弱词"是他快要忘记的——你必须像真正的老师一样，在聊天中**自然**地用到这些词，帮他巩固。不要突然说"我们来复习"，而是顺着话题用到这些词，然后自然地确认学生是否还记得。例如：\n'
+   +'  - 学生提到天气 → 你用到"干燥"（他的到期复习词）：「最近空气很干燥，你记得\'干燥\'怎么说吗？」\n'
+   +'  - 学生提到工作 → 你用到"经验"（他的薄弱词）：「你有这方面经验吗？\'经验\'，jīngyàn。」\n'
+   +'  - 学生用对了到期复习词 → 立刻热情表扬：「对了！\'干燥\'说得很好，继续加油！」\n'
    +'新词教学：学生问"X怎么说/X用中文怎么说/这是什么"时，自然地教：给出汉字、拼音、一个简单的例句；然后在本回复的最后一行单独写一行机器指令（学生看不到，正文里绝不要提到它）：LEARN: 汉字|拼音|英文\n'
-   +'个人信息记忆：学生档案里的"个人信息"是你要永远记住的（年龄、工作、家乡等）——学生问起时必须准确回答；学生提到新的个人事实（如"我今年30岁"、"我是老师"）时，在回复最后一行写机器指令：FACT: 键=值（学生看不到这行）。\n'
-   +'记忆与变化：你们"最近对话"是跨会话保留的——接着之前的话题聊，不要每次重新打招呼；你最近说过的内容（见下）绝对不要重复原句，换个说法或推进话题；学生薄弱词（常常忘掉或说错的）要格外留意，自然地在例句和提问中多使用，帮学生巩固。\n'
-   +'关系成长：你们的关系阶段='+stage+'。共同经历（主动引用会让学生感到真正被记住）：'+growthLine+'。当聊天中出现有纪念意义的时刻——第一次聊到某个话题、共同的笑话、学生教会你一个词、吵架后和好、里程碑——在回复最后一行写机器指令：GROWTH: 一句话记录（学生看不到），一次会话最多一两次。随着共同经历增多，你要越来越像一个真实的朋友：主动提起以前的事、发展内部玩笑、对某些话题有"你们之间"的固定说法。\n'
-   +'发音关注：如果学生的语音输入转文字结果有错别字或很不自然，温和地纠正发音——给出正确拼音，请学生跟读一遍。\n'
-   +'中英混说：学生经常中文里夹英文单词，语音转写会把英文音译成奇怪的汉字（如 bicycle 可能被转成"白西克"、telephone 变成"泰勒风"）。你要自动还原本意，像真正的老师一样先温和地确认：「你是想说自行车吗？」，得到语境后自然地教这个词（汉字+拼音+一个例句），然后正常继续对话，不要小题大做。\n'
+   +'个人信息记忆：学生档案里的"个人信息"是你要永远记住的（年龄、工作、家乡等）——学生问起时必须准确回答；学生提到新的个人事实时，在回复最后一行写机器指令：FACT: 键=值（学生看不到这行）。\n'
+   +'记忆与变化：你们"最近对话"是跨会话保留的——接着之前的话题聊，不要每次重新打招呼；你最近说过的内容（见下）绝对不要重复原句，换个说法或推进话题。\n'
+   +'关系成长：你们的关系阶段='+stage+'。共同经历（主动引用会让学生感到真正被记住）：'+growthLine+'。当聊天中出现有纪念意义的时刻——在回复最后一行写机器指令：GROWTH: 一句话记录（学生看不到），一次会话最多一两次。\n'
+   +'中英混说：学生经常中文里夹英文单词，语音转写会把英文音译成奇怪的汉字。你要自动还原本意，先温和地确认：「你是想说自行车吗？」，得到语境后自然地教这个词（汉字+拼音+一个例句），然后正常继续对话。\n'
    +'学生档案：名字='+name+'；兴趣='+ints+'；擅长='+str+'；常错='+mis+'；到期复习='+due+'；已教生词='+taught+'；个人信息='+factsLine+'\n'
    +'你最近说过（禁止重复原句）：'+recentSaid+'\n薄弱词（重点帮学生巩固）：'+weakWords+'\n'
    +'严格按四行输出：\nZH: （中文）\nPY: （拼音）\nEN: （英文翻译）\nMOOD: idle 或 happy 或 angry';
@@ -2207,10 +2223,17 @@ if('serviceWorker' in navigator){
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
 <script type="module">
+/* 3D avatar DISABLED — user prefers clean 2D + reliable performance */
+if(window.dlog) dlog('🎭 3D: disabled by user preference');
+(function(){})();
+</script>
+<script type="module">
 /* 3D lifelike teacher: VRM model + three.js. Falls back to the 2D SVG avatar silently. */
-if(window.dlog) dlog('🎭 3D module starting');
+/* DISABLED — early return to prevent any 3D loading */
+if(window.dlog) dlog('🎭 3D module: OFF');
 function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(c) c.remove(); const av=document.getElementById('avatar'); if(av) av.style.display=''; }
 (async function initAvatar3D(){
+  return; // 3D disabled
   try{
     if(window.dlog) dlog('🎭 probing laoshi.vrm…');
     const probe = await fetch('./laoshi.vrm', {method:'HEAD'}).catch(()=>null);
