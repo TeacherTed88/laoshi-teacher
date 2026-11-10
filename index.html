@@ -2212,15 +2212,16 @@ function removeCanvasIfAny(){ const c=document.getElementById('vrm-canvas'); if(
     if(window.dlog) dlog('🎭 laoshi.vrm found ✓');
     let THREE, GLTFLoader, VRMLoaderPlugin;
     const withTimeout=(promise, ms)=>Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
-    /* 1) try local files first (instant if user bundles them into the repo) */
+    /* 1) try local files first — generous timeout: 1.3MB file needs time to parse on a phone */
     try{
       if(window.dlog) dlog('🎭 trying local three.js bundle…');
-      THREE = await withTimeout(import(/* @vite-ignore */ './three.module.js'), 3000);
-      GLTFLoader = (await withTimeout(import(/* @vite-ignore */ './GLTFLoader.js'), 3000)).GLTFLoader;
-      VRMLoaderPlugin = (await withTimeout(import(/* @vite-ignore */ './three-vrm.module.min.js'), 3000)).VRMLoaderPlugin;
+      THREE = await withTimeout(import(/* @vite-ignore */ './three.module.js'), 20000);
+      GLTFLoader = (await withTimeout(import(/* @vite-ignore */ './GLTFLoader.js'), 20000)).GLTFLoader;
+      VRMLoaderPlugin = (await withTimeout(import(/* @vite-ignore */ './three-vrm.module.min.js'), 20000)).VRMLoaderPlugin;
       if(window.dlog) dlog('🎭 local bundle loaded ✓');
     }catch(localErr){
-      if(window.dlog) dlog('🎭 local bundle missing ('+((localErr&&localErr.message)||localErr)+') → trying CDNs');
+      const why=(localErr&&localErr.message)||String(localErr);
+      if(window.dlog) dlog('🎭 local bundle failed ('+why+') → trying CDNs');
       /* 2) fall back to CDN chain with generous timeout for slow connections */
       const sources=[
         {three:'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
